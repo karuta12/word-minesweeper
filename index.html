@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五十音表マインスイーパー対戦</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Zen Maru Gothic', sans-serif;
+            background-color: #f8fafc;
+        }
+        @keyframes timer-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.85; }
+        }
+        .timer-danger {
+            color: #ef4444 !important;
+            border-color: #f87171 !important;
+            animation: timer-pulse 0.8s infinite;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center justify-start p-2 sm:p-4">
+
+    <!-- ヘッダー -->
+    <header class="text-center mb-2 sm:mb-3">
+        <h1 class="text-2xl sm:text-3xl font-black text-indigo-700 tracking-wider">五十音表マインスイーパー対戦</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">2人対戦パズル（ワード構造推理 ＆ マス開け）</p>
+    </header>
+
+    <!-- プレイヤー名設定カード -->
+    <div class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-slate-200 flex flex-col gap-2">
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">👤 プレイヤー名設定</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-indigo-700 whitespace-nowrap">P1:</span>
+                <input type="text" id="p1-name-input" value="プレイヤー1" class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="updatePlayerName(1)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap">変更</button>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <span class="text-xs font-bold text-slate-700 whitespace-nowrap">P2:</span>
+                <input type="text" id="p2-name-input" value="プレイヤー2" class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="updatePlayerName(2)" class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap">変更</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ゲーム情報 ＆ アクション操作カード -->
+    <div class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 border border-slate-200 flex flex-col gap-2.5">
+        
+        <!-- 上段：基本情報 ＆ カウントダウンタイマー ＆ 問題変更ボタン -->
+        <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2.5">
+            <div>
+                <span id="genre-badge" class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-bold mb-1">ジャンル: 読み込み中...</span>
+                <div class="text-xs sm:text-sm font-bold text-slate-700">文字数: <span id="target-length" class="text-indigo-600 font-black">--</span> 文字</div>
+            </div>
+
+            <!-- タイマー & ターン表示 -->
+            <div class="flex items-center gap-2">
+                <div id="timer-box" class="bg-slate-900 text-amber-400 font-mono text-sm sm:text-base font-black px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 shadow-inner transition-all">
+                    <span>⏱️</span>
+                    <span id="timer-display">03:00</span>
+                </div>
+
+                <div id="status-turn" class="bg-amber-100 border border-amber-300 text-amber-900 px-3 sm:px-4 py-1.5 rounded-xl text-center font-bold text-xs sm:text-sm shadow-sm whitespace-nowrap">
+                    プレイヤー1のターン
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <input type="file" id="csv-file-input" accept=".csv" class="hidden" onchange="handleCSVFileSelect(event)">
+                <button onclick="document.getElementById('csv-file-input').click()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 whitespace-nowrap">
+                    📁 CSV指定
+                </button>
+                <button onclick="initGame()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap">問題変更</button>
+            </div>
+        </div>
+
+        <!-- 中段：お題の構造ヒント表示エリア -->
+        <div id="word-structure-panel" class="bg-slate-800 text-white rounded-xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-inner">
+            <div class="flex items-center justify-between w-full text-[11px] sm:text-xs text-slate-400 font-bold px-1">
+                <span>💡 お題の文字構造ヒント</span>
+                <span id="hint-status-label" class="text-slate-400">爆弾マスを開けるとヒントで位置を特定可能</span>
+            </div>
+            <div id="word-slots" class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 my-0.5">
+                <!-- JavaScriptで動적生成 -->
+            </div>
+        </div>
+
+        <!-- 下段：操作パネル -->
+        <div id="action-panel" class="bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2 h-24 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm shrink-0 overflow-hidden">
+            <div id="action-prompt" class="font-bold text-indigo-950 text-xs sm:text-sm text-center sm:text-left flex items-center gap-1.5 w-full sm:w-auto flex-1">
+                <!-- JSで動的テキスト表示 -->
+            </div>
+            <div id="action-controls" class="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end shrink-0">
+                <!-- JSでボタン・入力欄を動的切り替え -->
+            </div>
+        </div>
+
+    </div>
+
+    <!-- メインボードエリア -->
+    <div class="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-3 sm:p-5 border border-slate-200 flex flex-col items-center">
+
+        <!-- 横型五十音表ボード (5行×10列) -->
+        <div id="board" class="grid grid-cols-10 gap-1 sm:gap-1.5 w-full select-none">
+            <!-- JavaScriptで動的生成 -->
+        </div>
+
+        <!-- プレイヤー情報・スコアボード ＆ ヒントボタン -->
+        <div class="w-full grid grid-cols-2 gap-3 sm:gap-4 mt-4 pt-3 border-t border-slate-200 text-center text-xs sm:text-sm font-bold">
+            <div id="p1-box" class="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col items-center justify-between gap-1.5">
+                <div>
+                    <span id="p1-display-name" class="text-sm sm:text-base font-black">プレイヤー1</span>
+                    <span id="p1-status" class="block text-[10px] sm:text-xs font-normal text-slate-500">通常</span>
+                </div>
+                <button id="p1-hint-btn" onclick="triggerPlayerHint(1)" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    💡 位置ヒント (残り1回)
+                </button>
+            </div>
+
+            <div id="p2-box" class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-70">
+                <div>
+                    <span id="p2-display-name" class="text-sm sm:text-base font-black">プレイヤー2</span>
+                    <span id="p2-status" class="block text-[10px] sm:text-xs font-normal text-slate-500">通常</span>
+                </div>
+                <button id="p2-hint-btn" onclick="triggerPlayerHint(2)" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                    💡 位置ヒント (残り1回)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ログ表示エリア -->
+    <div class="w-full max-w-2xl bg-white shadow-md rounded-xl p-3 sm:p-4 mt-3 sm:mt-4 border border-slate-200">
+        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">ゲームログ</h4>
+        <div id="log-box" class="h-20 sm:h-24 overflow-y-auto text-xs text-slate-600 space-y-1 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100">
+            <div>ゲームが開始されました。</div>
+        </div>
+    </div>
+
+    <!-- 結果モーダル -->
+    <div id="result-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full text-center shadow-2xl">
+            <h2 id="result-title" class="text-2xl font-black text-indigo-600 mb-2">勝負あり！</h2>
+            <p id="result-message" class="text-slate-600 text-sm mb-6">正解です！</p>
+            <button onclick="initGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition">もう一度プレイする</button>
+        </div>
+    </div>
+
+    <script>
+        // デフォルトのサンプルデータ
+        const DEFAULT_CSV = `ジャンル,ワード
+生き物,おおさんしょううお
+地理・観光,ふじさん
+作品・物語,せんとちひろのかみかくし
+食べ物,すきやき
+歴史・人物,おだのぶなが`;
+
+        // 五十音表（横配置：右から「あ」〜左に「わ」）、最左の「わ」の列の下に「ー」を追加
+        const KANA_GRID = [
+            ["わ", "ら", "や", "ま", "は", "な", "た", "さ", "か", "あ"],
+            ["を", "り", "",   "み", "ひ", "に", "ち", "し", "き", "い"],
+            ["ん", "る", "ゆ", "む", "ふ", "ぬ", "つ", "す", "く", "う"],
+            ["ー", "れ", "",   "め", "へ", "ね", "て", "せ", "け", "え"],
+            ["",   "ろ", "よ", "も", "ほ", "の", "と", "そ", "こ", "お"]
+        ];
+
+        // 清音化マップ
+        const DAKUTEN_MAP = {
+            'が':'か','ぎ':'き','ぐ':'く','げ':'け','ご':'こ',
+            'ざ':'さ','じ':'し','ず':'す','ぜ':'せ','ぞ':'そ',
+            'だ':'た','ぢ':'ち','づ':'つ','で':'て','ど':'と',
+            'ば':'は','び':'ひ','ぶ':'ふ','べ':'へ','ぼ':'ほ',
+            'ぱ':'は','ぴ':'ひ','ぷ':'ふ','ぺ':'へ','ぽ':'ほ',
+            'ぁ':'あ','ぃ':'い','ぅ':'う','ぇ':'え','ぉ':'お',
+            'っ':'つ','ゃ':'や','ゅ':'ゆ','ょ':'よ','ゎ':'わ',
+            'ゔ':'う'
+        };
+
+        let questionsDatabase = [];
+        let currentQuestion = {};
+        let turn = 1;
+        let skippedPlayer = null;
+        let phase = 'choose'; // 'choose', 'open', 'guess'
+        let cellsData = {};
+
+        // プレイヤー名管理
+        let playerNames = {
+            1: "プレイヤー1",
+            2: "プレイヤー2"
+        };
+
+        // 3分タイマー状態管理
+        const TURN_TIME_LIMIT = 180; // 180秒
+        let timeLeft = TURN_TIME_LIMIT;
+        let timerInterval = null;
+
+        // 位置ヒントフラグ ＆ 開示済み位置データ
+        let player1HintUsed = false;
+        let player2HintUsed = false;
+        let revealedPositions = {}; // { 0: 'お', 2: 'さ' } のようにインデックス毎の開示文字
+
+        // プレイヤー名の動的更新処理
+        function updatePlayerName(playerNum) {
+            const inputEl = document.getElementById(`p${playerNum}-name-input`);
+            if (!inputEl) return;
+            const newName = inputEl.value.trim();
+            if (!newName) {
+                alert("プレイヤー名を入力してください。");
+                return;
+            }
+
+            playerNames[playerNum] = newName;
+            document.getElementById(`p${playerNum}-display-name`).textContent = newName;
+            addLog(`プレイヤー${playerNum}の名前が「${newName}」に変更されました。`);
+            updateUIState();
+        }
+
+        // カウントダウンタイマーの開始
+        function startTimer() {
+            stopTimer();
+            timeLeft = TURN_TIME_LIMIT;
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+
+                if (timeLeft <= 0) {
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            const displayEl = document.getElementById('timer-display');
+            const timerBox = document.getElementById('timer-box');
+
+            if (displayEl) displayEl.textContent = formatted;
+
+            if (timeLeft <= 30) {
+                timerBox.classList.add('timer-danger');
+            } else {
+                timerBox.classList.remove('timer-danger');
+            }
+        }
+
+        // 3分経過タイムアウト処理
+        function handleTimeout() {
+            stopTimer();
+            const currentName = playerNames[turn];
+            addLog(`⏱️ ${currentName}の制限時間（3分）が切れました！強制的にマスを開けます。`);
+
+            const unopenChars = Object.keys(cellsData).filter(char => !cellsData[char].isOpen);
+
+            if (unopenChars.length > 0) {
+                const randomChar = unopenChars[Math.floor(Math.random() * unopenChars.length)];
+                addLog(`🎲 時間切れ強制開放: 「${randomChar}」が開かれました。`);
+                processCellOpen(randomChar);
+            } else {
+                endTurn();
+            }
+        }
+
+        // CSVの解析処理
+        function parseCSVText(csvText) {
+            const lines = csvText.trim().split(/\r?\n/);
+            const parsed = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const parts = line.split(',');
+                if (parts.length >= 2) {
+                    const genre = parts[0].trim();
+                    const word = parts[1].trim();
+
+                    if (genre === 'ジャンル' || word === 'ワード') continue;
+
+                    if (genre && word) {
+                        parsed.push({ genre, word });
+                    }
+                }
+            }
+            return parsed;
+        }
+
+        async function autoLoadWordCSV() {
+            try {
+                const response = await fetch('word.csv');
+                if (response.ok) {
+                    const text = await response.text();
+                    const loadedQuestions = parseCSVText(text);
+                    if (loadedQuestions.length > 0) {
+                        questionsDatabase = loadedQuestions;
+                        addLog(`「word.csv」から問題（${loadedQuestions.length}件）を読み込みました。`);
+                    } else {
+                        questionsDatabase = parseCSVText(DEFAULT_CSV);
+                    }
+                } else {
+                    questionsDatabase = parseCSVText(DEFAULT_CSV);
+                }
+            } catch (e) {
+                questionsDatabase = parseCSVText(DEFAULT_CSV);
+            }
+            initGame();
+        }
+
+        function handleCSVFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const newQuestions = parseCSVText(text);
+                if (newQuestions.length > 0) {
+                    questionsDatabase = newQuestions;
+                    addLog(`選択したCSVから ${newQuestions.length} 件の問題を読み込みました！`);
+                    initGame();
+                } else {
+                    alert('CSVの読み込みに失敗しました。「ジャンル,ワード」の形式か確認してください。');
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
+        }
+
+        function addLog(text) {
+            const logBox = document.getElementById('log-box');
+            const div = document.createElement('div');
+            div.textContent = `[ターン${turn}: ${playerNames[turn]}] ${text}`;
+            logBox.prepend(div);
+        }
+
+        function extractHintCharCounts(word) {
+            const counts = {};
+            const validChars = KANA_GRID.flat().filter(c => c !== "");
+
+            for (const char of word) {
+                const cleanChar = DAKUTEN_MAP[char] || char;
+                if (validChars.includes(cleanChar)) {
+                    counts[cleanChar] = (counts[cleanChar] || 0) + 1;
+                }
+            }
+            return counts;
+        }
+
+        function initGame() {
+            stopTimer();
+
+            if (questionsDatabase.length === 0) {
+                questionsDatabase = parseCSVText(DEFAULT_CSV);
+            }
+
+            const q = questionsDatabase[Math.floor(Math.random() * questionsDatabase.length)];
+            currentQuestion = q;
+
+            document.getElementById('genre-badge').textContent = `ジャンル: ${q.genre}`;
+            document.getElementById('target-length').textContent = q.word.length;
+
+            turn = 1;
+            skippedPlayer = null;
+            phase = 'choose';
+
+            player1HintUsed = false;
+            player2HintUsed = false;
+            revealedPositions = {};
+
+            cellsData = {};
+            
+            KANA_GRID.forEach(row => {
+                row.forEach(char => {
+                    if (char) {
+                        cellsData[char] = {
+                            char: char,
+                            isOpen: false,
+                            bombs: 0,
+                            neighborBombs: 0
+                        };
+                    }
+                });
+            });
+
+            const bombCounts = extractHintCharCounts(q.word);
+            for (const [char, count] of Object.entries(bombCounts)) {
+                if (cellsData[char]) {
+                    cellsData[char].bombs = count;
+                }
+            }
+
+            calculateBombCounts();
+
+            document.getElementById('result-modal').classList.add('hidden');
+            renderBoard();
+            renderWordSlots();
+            updateUIState();
+            addLog(`新しい問題が開始されました。（文字数: ${q.word.length}）`);
+
+            startTimer();
+        }
+
+        function calculateBombCounts() {
+            const rows = KANA_GRID;
+            for (let r = 0; r < rows.length; r++) {
+                for (let c = 0; c < rows[r].length; c++) {
+                    const char = rows[r][c];
+                    if (!char) continue;
+
+                    let totalNeighborBombs = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+                            const nr = r + dr;
+                            const nc = c + dc;
+                            if (nr >= 0 && nr < rows.length && nc >= 0 && nc < rows[nr].length) {
+                                const neighborChar = rows[nr][nc];
+                                if (neighborChar && cellsData[neighborChar]) {
+                                    totalNeighborBombs += cellsData[neighborChar].bombs;
+                                }
+                            }
+                        }
+                    }
+                    cellsData[char].neighborBombs = totalNeighborBombs;
+                }
+            }
+        }
+
+        function revealCell(startChar) {
+            if (!startChar || !cellsData[startChar] || cellsData[startChar].isOpen || cellsData[startChar].bombs > 0) {
+                return;
+            }
+
+            cellsData[startChar].isOpen = true;
+
+            if (cellsData[startChar].neighborBombs === 0) {
+                let rPos = -1, cPos = -1;
+                for (let r = 0; r < KANA_GRID.length; r++) {
+                    for (let c = 0; c < KANA_GRID[r].length; c++) {
+                        if (KANA_GRID[r][c] === startChar) {
+                            rPos = r;
+                            cPos = c;
+                            break;
+                        }
+                    }
+                    if (rPos !== -1) break;
+                }
+
+                if (rPos !== -1) {
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dr === 0) continue;
+                            const nr = rPos + dr;
+                            const nc = cPos + dc;
+                            if (nr >= 0 && nr < KANA_GRID.length && nc >= 0 && nc < KANA_GRID[nr].length) {
+                                const nextChar = KANA_GRID[nr][nc];
+                                if (nextChar && cellsData[nextChar] && !cellsData[nextChar].isOpen && cellsData[nextChar].bombs === 0) {
+                                    revealCell(nextChar);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 位置ヒントの発動（未開示の位置を持つ開いている爆弾マスから優先的に抽選）
+        function triggerPlayerHint(playerNum) {
+            if (turn !== playerNum) {
+                addLog(`現在は${playerNames[turn]}のターンです。自分のターンにヒントを使用してください。`);
+                return;
+            }
+
+            if ((playerNum === 1 && player1HintUsed) || (playerNum === 2 && player2HintUsed)) {
+                addLog(`${playerNames[playerNum]}は既に位置ヒントを使用しています。`);
+                return;
+            }
+
+            // 現在すでに「開いている爆弾マス」を取得
+            const openedBombChars = Object.keys(cellsData).filter(char => cellsData[char].isOpen && cellsData[char].bombs > 0);
+
+            if (openedBombChars.length === 0) {
+                addLog(`⚠️ 爆弾マスがまだ開いていません！爆弾マスが開いてからヒントを使用してください。`);
+                return;
+            }
+
+            const word = currentQuestion.word;
+
+            // まだヒントで開示されていない位置を持つ、開示可能な爆弾文字を抽出
+            const unrevealedBombChars = openedBombChars.filter(char => {
+                for (let i = 0; i < word.length; i++) {
+                    const cleanChar = DAKUTEN_MAP[word[i]] || word[i];
+                    if (cleanChar === char && !revealedPositions[i]) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            if (unrevealedBombChars.length === 0) {
+                addLog(`⚠️ 現在開いている爆弾マスの位置はすべてヒントで開示済みです！新たな爆弾マスを開けてから使用してください。`);
+                return;
+            }
+
+            // 未開示の爆弾文字の中からランダムで1つ選択
+            const chosenBombChar = unrevealedBombChars[Math.floor(Math.random() * unrevealedBombChars.length)];
+
+            // お題ワードの中でその文字（清音対応含む）があるインデックスを特定して公開
+            let foundIndices = [];
+            for (let i = 0; i < word.length; i++) {
+                const cleanChar = DAKUTEN_MAP[word[i]] || word[i];
+                if (cleanChar === chosenBombChar) {
+                    revealedPositions[i] = word[i];
+                    foundIndices.push(i + 1);
+                }
+            }
+
+            // ヒント使用フラグ消費
+            if (playerNum === 1) player1HintUsed = true;
+            if (playerNum === 2) player2HintUsed = true;
+
+            // 伏字表示用文字列の生成
+            let resultPattern = "";
+            for (let i = 0; i < word.length; i++) {
+                resultPattern += revealedPositions[i] ? revealedPositions[i] : "＊";
+            }
+
+            addLog(`💡 ${playerNames[playerNum]}が位置ヒントを使用！「${chosenBombChar}」の位置が判明: [ ${resultPattern} ]`);
+
+            renderWordSlots();
+            updateUIState();
+        }
+
+        // お題構造スロットのレンダリング
+        function renderWordSlots() {
+            const container = document.getElementById('word-slots');
+            const statusLabel = document.getElementById('hint-status-label');
+            container.innerHTML = '';
+
+            if (!currentQuestion.word) return;
+
+            const word = currentQuestion.word;
+            const hasRevealedAny = Object.keys(revealedPositions).length > 0;
+
+            if (hasRevealedAny) {
+                statusLabel.textContent = "💡 ヒントで開示された文字を表示中";
+                statusLabel.className = "text-amber-400 font-bold";
+            } else {
+                statusLabel.textContent = "爆弾マスを開けるとヒントで位置を特定可能";
+                statusLabel.className = "text-slate-400";
+            }
+
+            for (let i = 0; i < word.length; i++) {
+                const slot = document.createElement('div');
+                slot.className = "w-7 h-8 sm:w-8 sm:h-9 rounded-md flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm transition border ";
+
+                if (revealedPositions[i]) {
+                    slot.className += "bg-amber-400 text-slate-900 border-amber-300 font-black";
+                    slot.textContent = revealedPositions[i];
+                } else {
+                    slot.className += "bg-slate-700/80 text-slate-400 border-slate-600";
+                    slot.textContent = "＊";
+                }
+
+                container.appendChild(slot);
+            }
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            KANA_GRID.forEach((row) => {
+                row.forEach((char) => {
+                    const cellDiv = document.createElement('div');
+                    if (!char) {
+                        cellDiv.className = 'w-full aspect-square';
+                        boardEl.appendChild(cellDiv);
+                        return;
+                    }
+
+                    const data = cellsData[char];
+                    
+                    let bgClass = 'bg-white hover:bg-indigo-50 text-indigo-900 border-indigo-200 cursor-pointer';
+                    if (data.isOpen) {
+                        if (data.bombs > 0) {
+                            bgClass = 'bg-rose-500 text-white border-rose-600 shadow-inner';
+                        } else {
+                            bgClass = 'bg-slate-200 text-slate-700 border-slate-300';
+                        }
+                    }
+
+                    cellDiv.className = `w-full aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bgClass}`;
+
+                    if (data.isOpen) {
+                        if (data.bombs > 0) {
+                            const bombLabel = data.bombs > 1 ? `💣×${data.bombs}` : `💣`;
+                            cellDiv.innerHTML = `<span class="text-[9px] sm:text-xs font-black">${bombLabel}</span><span class="text-[10px] sm:text-xs font-black">${char}</span>`;
+                        } else {
+                            cellDiv.innerHTML = `<span>${char}</span><span class="text-[10px] sm:text-xs text-indigo-600 font-black">${data.neighborBombs > 0 ? data.neighborBombs : ''}</span>`;
+                        }
+                    } else {
+                        cellDiv.innerHTML = `<span>${char}</span>`;
+                        cellDiv.onclick = () => handleCellClick(char);
+                    }
+
+                    boardEl.appendChild(cellDiv);
+                });
+            });
+        }
+
+        function updateUIState() {
+            if (skippedPlayer === turn) {
+                addLog(`${playerNames[turn]}は1回休みです！`);
+                skippedPlayer = null;
+                endTurn();
+                return;
+            }
+
+            document.getElementById('status-turn').textContent = `${playerNames[turn]}のターン`;
+            
+            if (turn === 1) {
+                document.getElementById('p1-box').className = "p-2.5 rounded-xl bg-indigo-100 border-2 border-indigo-500 shadow flex flex-col items-center justify-between gap-1.5 opacity-100";
+                document.getElementById('p2-box').className = "p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-60";
+            } else {
+                document.getElementById('p1-box').className = "p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-60";
+                document.getElementById('p2-box').className = "p-2.5 rounded-xl bg-indigo-100 border-2 border-indigo-500 shadow flex flex-col items-center justify-between gap-1.5 opacity-100";
+            }
+
+            const p1Btn = document.getElementById('p1-hint-btn');
+            p1Btn.disabled = player1HintUsed || turn !== 1;
+            p1Btn.textContent = player1HintUsed ? '💡 ヒント使用済' : '💡 位置ヒント (残り1回)';
+
+            const p2Btn = document.getElementById('p2-hint-btn');
+            p2Btn.disabled = player2HintUsed || turn !== 2;
+            p2Btn.textContent = player2HintUsed ? '💡 ヒント使用済' : '💡 位置ヒント (残り1回)';
+
+            const promptEl = document.getElementById('action-prompt');
+            const controlsEl = document.getElementById('action-controls');
+
+            if (phase === 'choose') {
+                promptEl.innerHTML = `<span class="text-base">🎮</span> <span>${playerNames[turn]}の番です。アクションを選択してください</span>`;
+                controlsEl.innerHTML = `
+                    <button onclick="chooseAction('open')" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">
+                        🔍 マスを開く
+                    </button>
+                    <button onclick="chooseAction('guess')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">
+                        💡 ワードを答える
+                    </button>
+                `;
+            } else if (phase === 'open') {
+                promptEl.innerHTML = `<span class="text-base">🔍</span> <span>${playerNames[turn]}: 盤面のマスを1つ押してください</span>`;
+                controlsEl.innerHTML = `
+                    <button onclick="cancelGuess()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition whitespace-nowrap shrink-0">
+                        ↩ キャンセル
+                    </button>
+                `;
+            } else if (phase === 'guess') {
+                promptEl.innerHTML = `<span class="text-base">💡</span> <span>ひらがなで正解を入力:</span>`;
+                controlsEl.innerHTML = `
+                    <input type="text" id="guess-input" placeholder="ワードを入力" class="px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-32 sm:w-44">
+                    <button onclick="submitGuess()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">回答</button>
+                    <button onclick="cancelGuess()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 py-1.5 rounded-lg font-bold text-xs transition whitespace-nowrap shrink-0">戻る</button>
+                `;
+                setTimeout(() => {
+                    const input = document.getElementById('guess-input');
+                    if(input) input.focus();
+                }, 50);
+            }
+        }
+
+        function chooseAction(action) {
+            if (action === 'open') {
+                phase = 'open';
+                updateUIState();
+                addLog(`${playerNames[turn]}: マスを選んでください`);
+            } else if (action === 'guess') {
+                phase = 'guess';
+                updateUIState();
+            }
+        }
+
+        function cancelGuess() {
+            phase = 'choose';
+            updateUIState();
+        }
+
+        function handleCellClick(char) {
+            if (phase !== 'open') return;
+            processCellOpen(char);
+        }
+
+        function processCellOpen(char) {
+            const data = cellsData[char];
+            if (!data || data.isOpen) return;
+
+            if (data.bombs > 0) {
+                data.isOpen = true;
+                addLog(`${playerNames[turn]}が爆弾（${char}・${data.bombs}個分）を踏んでしまった！ 1回休み！`);
+                skippedPlayer = turn;
+                renderBoard();
+                endTurn();
+            } else {
+                if (data.neighborBombs === 0) {
+                    revealCell(char);
+                    addLog(`${playerNames[turn]}が「${char}」を開いた（安全なエリアが連鎖展開しました）`);
+                } else {
+                    data.isOpen = true;
+                    addLog(`${playerNames[turn]}が「${char}」を開いた（周囲の爆弾数: ${data.neighborBombs}）`);
+                }
+                renderBoard();
+                endTurn();
+            }
+        }
+
+        function submitGuess() {
+            const inputEl = document.getElementById('guess-input');
+            if (!inputEl) return;
+            const inputVal = inputEl.value.trim();
+            if (!inputVal) return;
+
+            if (inputVal === currentQuestion.word) {
+                addLog(`🎉 ${playerNames[turn]}がワード「${inputVal}」を正解した！`);
+                triggerVictory(turn);
+            } else {
+                addLog(`❌ ${playerNames[turn]}の回答「${inputVal}」は不正解でした……。`);
+                endTurn();
+            }
+        }
+
+        function endTurn() {
+            stopTimer();
+            phase = 'choose';
+            turn = turn === 1 ? 2 : 1;
+            updateUIState();
+            startTimer();
+        }
+
+        function triggerVictory(winner) {
+            stopTimer();
+            document.getElementById('result-title').textContent = `${playerNames[winner]}の勝利！`;
+            document.getElementById('result-message').textContent = `お題「${currentQuestion.word}」を見事に当てました！`;
+            document.getElementById('result-modal').classList.remove('hidden');
+        }
+
+        window.onload = autoLoadWordCSV;
+    </script>
+</body>
+</html>
