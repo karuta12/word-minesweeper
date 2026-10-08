@@ -467,7 +467,7 @@
                 if (rPos !== -1) {
                     for (let dr = -1; dr <= 1; dr++) {
                         for (let dc = -1; dc <= 1; dc++) {
-                            if (dr === 0 && dr === 0) continue;
+                            if (dr === 0 && dc === 0) continue;
                             const nr = rPos + dr;
                             const nc = cPos + dc;
                             if (nr >= 0 && nr < KANA_GRID.length && nc >= 0 && nc < KANA_GRID[nr].length) {
