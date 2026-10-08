@@ -187,6 +187,7 @@
         let skippedPlayer = null;
         let phase = 'choose'; // 'choose', 'open', 'guess'
         let cellsData = {};
+        let canAnswer = { 1: true, 2: true }; // 回答権フラグ（不正解で失う、ターン交代で回復）
 
         // プレイヤー名管理
         let playerNames = {
@@ -382,6 +383,7 @@
             player1HintUsed = false;
             player2HintUsed = false;
             revealedPositions = {};
+            canAnswer = { 1: true, 2: true };
 
             cellsData = {};
             
@@ -655,14 +657,17 @@
             const controlsEl = document.getElementById('action-controls');
 
             if (phase === 'choose') {
+                const guessBtn = canAnswer[turn]
+                    ? `<button onclick="chooseAction('guess')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">
+                        💡 ワードを答える
+                    </button>`
+                    : `<span class="text-xs text-slate-400 italic whitespace-nowrap shrink-0">💡 回答権なし（マスを開いてください）</span>`;
                 promptEl.innerHTML = `<span class="text-base">🎮</span> <span>${playerNames[turn]}の番です。アクションを選択してください</span>`;
                 controlsEl.innerHTML = `
                     <button onclick="chooseAction('open')" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">
                         🔍 マスを開く
                     </button>
-                    <button onclick="chooseAction('guess')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">
-                        💡 ワードを答える
-                    </button>
+                    ${guessBtn}
                 `;
             } else if (phase === 'open') {
                 promptEl.innerHTML = `<span class="text-base">🔍</span> <span>${playerNames[turn]}: 盤面のマスを1つ押してください</span>`;
@@ -739,8 +744,10 @@
                 addLog(`🎉 ${playerNames[turn]}がワード「${inputVal}」を正解した！`);
                 triggerVictory(turn);
             } else {
-                addLog(`❌ ${playerNames[turn]}の回答「${inputVal}」は不正解でした……。`);
-                endTurn();
+                addLog(`❌ ${playerNames[turn]}の回答「${inputVal}」は不正解でした……。回答権を失いましたが、マスは開けます。`);
+                canAnswer[turn] = false;
+                phase = 'choose';
+                updateUIState();
             }
         }
 
@@ -748,6 +755,7 @@
             stopTimer();
             phase = 'choose';
             turn = turn === 1 ? 2 : 1;
+            canAnswer[turn] = true; // ターン交代で回答権を回復
             updateUIState();
             startTimer();
         }
