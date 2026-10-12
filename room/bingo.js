@@ -100,41 +100,11 @@ function bingoGenerateAllCards(playerCount) {
   }
   const charsWithoutRi = BINGO_FREQ_CHARS.filter((c) => c !== "り");
 
-  // プレイヤーごとの文字リストを作成
-  const playerCharLists = Array.from({ length: playerCount }, () => []);
-
-  // 1. まずベースとなる文字を配る
-  let forward = true,
-    p = 0;
-  for (let i = 0; i < charsWithoutRi.length; i++) {
-    playerCharLists[p].push(charsWithoutRi[i]);
-    if (forward) {
-      p++;
-      if (p >= playerCount) {
-        p = playerCount - 1;
-        forward = false;
-      }
-    } else {
-      p--;
-      if (p < 0) {
-        p = 0;
-        forward = true;
-      }
-    }
-  }
-
-  // 2. 24文字に足りない分（各プレイヤーの枚数が24枚未満の場合）を重複して補充する
-  playerCharLists.forEach((list) => {
-    while (list.length < 24) {
-      // 既存のリストからランダムに選んで重複追加する
-      const randomChar =
-        charsWithoutRi[Math.floor(Math.random() * charsWithoutRi.length)];
-      list.push(randomChar);
-    }
-  });
-
-  return playerCharLists.map((list) => {
-    const cards = shuffle(list).slice(0, 24);
+  // 各プレイヤーごとに、プールから重複なしで24文字を選んでカードを作成する
+  // （プレイヤー間での文字の重複はOK、1人の中には同じ文字が重複しない）
+  return Array.from({ length: playerCount }, () => {
+    const shuffled = shuffle(charsWithoutRi);
+    const cards = shuffled.slice(0, 24);
     cards.splice(12, 0, "り");
     return cards;
   });

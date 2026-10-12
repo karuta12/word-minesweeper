@@ -22,7 +22,7 @@
 //   自分のターン開始
 //     ├── [任意・繰り返し可] 指摘
 //     │     ├── 成功 → 文字数ポイント獲得 → また指摘可
-//     │     └── 失敗 → 以降指摘権なし
+//     │     └── 失敗 → 相手に1点 ＆ 以降指摘権なし
 //     └── 隣接空きマスに文字を1つ置く → 相手のターンへ
 //
 // 制約：
@@ -33,15 +33,60 @@
 
 // 清音のみ（濁点・半濁点・小文字は各自でつけ外し）
 // 五十音表と同じ縦並び・右からあ行、10列×5行
-// 空白セルは"　"（非表示）
+// 空白セルは" "（非表示）
 // わ列: わをんー を縦1列（ら行の左）
 const MOJIPIT_KANA = [
   // わ列  ら行  や行  ま行  は行  な行  た行  さ行  か行  あ行
-  "わ",  "ら",  "や",  "ま",  "は",  "な",  "た",  "さ",  "か",  "あ",
-  "を",  "り",  "　",  "み",  "ひ",  "に",  "ち",  "し",  "き",  "い",
-  "ん",  "る",  "ゆ",  "む",  "ふ",  "ぬ",  "つ",  "す",  "く",  "う",
-  "ー",  "れ",  "　",  "め",  "へ",  "ね",  "て",  "せ",  "け",  "え",
-  "　",  "ろ",  "よ",  "も",  "ほ",  "の",  "と",  "そ",  "こ",  "お",
+  "わ",
+  "ら",
+  "や",
+  "ま",
+  "は",
+  "な",
+  "た",
+  "さ",
+  "か",
+  "あ",
+  "を",
+  "り",
+  " ",
+  "み",
+  "ひ",
+  "に",
+  "ち",
+  "し",
+  "き",
+  "い",
+  "ん",
+  "る",
+  "ゆ",
+  "む",
+  "ふ",
+  "ぬ",
+  "つ",
+  "す",
+  "く",
+  "う",
+  "ー",
+  "れ",
+  " ",
+  "め",
+  "へ",
+  "ね",
+  "て",
+  "せ",
+  "け",
+  "え",
+  " ",
+  "ろ",
+  "よ",
+  "も",
+  "ほ",
+  "の",
+  "と",
+  "そ",
+  "こ",
+  "お",
 ];
 
 // 五十音表レイアウト（5×5、右上があ）
@@ -56,15 +101,24 @@ const MOJIPIT_KANA = [
 //
 
 // ── 状態変数 ──
-let mojipGrid        = Array(25).fill(null); // null or ひらがな1文字
-let mojipTurn        = 0;   // 0=P1, 1=P2
-let mojipMyIndex     = 0;   // 自分は0か1か
-let mojipNames       = ["", ""];
-let mojipScores      = [0, 0];
-let mojipCanAccuse   = [true, true]; // 指摘権
-let mojipFinished    = false;
+let mojipGrid = Array(25).fill(null); // null or ひらがな1文字
+let mojipTurn = 0; // 0=P1, 1=P2
+let mojipMyIndex = 0; // 自分は0か1か
+let mojipNames = ["", ""];
+let mojipScores = [0, 0];
+let mojipCanAccuse = [true, true]; // 指摘権
+let mojipFinished = false;
 let mojipSelectedCell = null; // 文字を置く対象のセルインデックス
-let mojipPhase       = "place"; // "place" | "accuse"
+let mojipPhase = "place"; // "place" | "accuse"
+
+// ── 文字数に応じたポイント計算関数 ──
+function mojipCalcPoints(len) {
+  if (len === 2) return 1;
+  if (len === 3) return 5;
+  if (len === 4) return 25;
+  if (len >= 5) return 100;
+  return 0; // 1文字以下の場合は0点
+}
 
 // ── 隣接マス取得（縦・横のみ）──
 function mojipGetAdjacentIndices(idx) {
@@ -80,7 +134,7 @@ function mojipGetAdjacentIndices(idx) {
 
 // ── 選択可能マスの集合を返す ──
 function mojipSelectableIndices() {
-  const hasAny = mojipGrid.some(c => c !== null);
+  const hasAny = mojipGrid.some((c) => c !== null);
   if (!hasAny) {
     // グリッドが空 → 全マス
     return new Set(mojipGrid.map((_, i) => i));
@@ -89,7 +143,7 @@ function mojipSelectableIndices() {
   const result = new Set();
   mojipGrid.forEach((ch, idx) => {
     if (ch !== null) {
-      mojipGetAdjacentIndices(idx).forEach(adj => {
+      mojipGetAdjacentIndices(idx).forEach((adj) => {
         if (mojipGrid[adj] === null) result.add(adj);
       });
     }
@@ -99,15 +153,15 @@ function mojipSelectableIndices() {
 
 // ── ゲーム開始（ホスト） ──
 function mojipHostStart(names) {
-  mojipMyIndex   = 0;
-  mojipNames     = names;
-  mojipGrid      = Array(25).fill(null);
-  mojipScores    = [0, 0];
+  mojipMyIndex = 0;
+  mojipNames = names;
+  mojipGrid = Array(25).fill(null);
+  mojipScores = [0, 0];
   mojipCanAccuse = [true, true];
-  mojipFinished  = false;
-  mojipTurn      = 0;
+  mojipFinished = false;
+  mojipTurn = 0;
   mojipSelectedCell = null;
-  mojipPhase     = "place";
+  mojipPhase = "place";
   showScreen("mojipittan-screen");
   mojipRender();
   mojipUpdateStatus();
@@ -115,15 +169,15 @@ function mojipHostStart(names) {
 
 // ── ゲーム開始（ゲスト） ──
 function mojipGuestStart(data) {
-  mojipMyIndex   = data.myIndex;
-  mojipNames     = data.names;
-  mojipGrid      = Array(25).fill(null);
-  mojipScores    = [0, 0];
+  mojipMyIndex = data.myIndex;
+  mojipNames = data.names;
+  mojipGrid = Array(25).fill(null);
+  mojipScores = [0, 0];
   mojipCanAccuse = [true, true];
-  mojipFinished  = false;
-  mojipTurn      = 0;
+  mojipFinished = false;
+  mojipTurn = 0;
   mojipSelectedCell = null;
-  mojipPhase     = "place";
+  mojipPhase = "place";
   showScreen("mojipittan-screen");
   mojipRender();
   mojipUpdateStatus();
@@ -135,7 +189,8 @@ function mojipRender() {
   if (!grid) return;
   grid.innerHTML = "";
 
-  const isMyTurn = !mojipFinished && mojipTurn === mojipMyIndex && mojipPhase === "place";
+  const isMyTurn =
+    !mojipFinished && mojipTurn === mojipMyIndex && mojipPhase === "place";
   const selectable = isMyTurn ? mojipSelectableIndices() : new Set();
 
   mojipGrid.forEach((ch, idx) => {
@@ -182,16 +237,17 @@ function mojipRender() {
 function mojipRenderPalette() {
   const palette = document.getElementById("mojipit-palette");
   if (!palette) return;
-  const isMyTurn = !mojipFinished && mojipTurn === mojipMyIndex && mojipPhase === "place";
+  const isMyTurn =
+    !mojipFinished && mojipTurn === mojipMyIndex && mojipPhase === "place";
   const cellSelected = mojipSelectedCell !== null;
 
   // 既にグリッドに置かれている文字のセット
-  const usedChars = new Set(mojipGrid.filter(c => c !== null));
+  const usedChars = new Set(mojipGrid.filter((c) => c !== null));
 
   palette.innerHTML = "";
-  MOJIPIT_KANA.forEach(ch => {
+  MOJIPIT_KANA.forEach((ch) => {
     const btn = document.createElement("button");
-    const isBlank = (ch === "　");
+    const isBlank = ch === " ";
     btn.className = "mojipit-kana-btn";
     btn.textContent = isBlank ? "" : ch;
 
@@ -213,7 +269,8 @@ function mojipRenderPalette() {
 
 // ── セル選択 ──
 function mojipSelectCell(idx) {
-  if (mojipFinished || mojipTurn !== mojipMyIndex || mojipPhase !== "place") return;
+  if (mojipFinished || mojipTurn !== mojipMyIndex || mojipPhase !== "place")
+    return;
   if (mojipGrid[idx] !== null) return;
   // 選択可能マスかチェック
   if (!mojipSelectableIndices().has(idx)) return;
@@ -226,10 +283,16 @@ function mojipPlaceChar(ch) {
   if (mojipFinished) return;
   if (mojipTurn !== mojipMyIndex) return;
   if (mojipPhase !== "place") return;
-  if (mojipSelectedCell === null) { alert("マスを選んでください"); return; }
+  if (mojipSelectedCell === null) {
+    alert("マスを選んでください");
+    return;
+  }
   if (mojipGrid[mojipSelectedCell] !== null) return;
   // 使用済み文字チェック
-  if (mojipGrid.includes(ch)) { alert("その文字はすでに置かれています"); return; }
+  if (mojipGrid.includes(ch)) {
+    alert("その文字はすでに置かれています");
+    return;
+  }
 
   const msg = { type: "MOJIPIT_PLACE", index: mojipSelectedCell, char: ch };
   if (lobbyIsHost) {
@@ -244,13 +307,13 @@ function mojipPlaceChar(ch) {
 // ── 文字置きを適用（全員共通） ──
 function mojipApplyPlace(index, ch) {
   mojipGrid[index] = ch;
-  mojipTurn = 1 - mojipTurn;  // ターン交代
+  mojipTurn = 1 - mojipTurn; // ターン交代
   mojipPhase = "place";
   mojipSelectedCell = null;
   mojipRender();
   mojipUpdateStatus();
   // 25マス埋まったら終了
-  if (mojipGrid.every(c => c !== null)) {
+  if (mojipGrid.every((c) => c !== null)) {
     mojipFinish();
   }
 }
@@ -283,15 +346,26 @@ function mojipCancelAccuse() {
 function mojipJudgeAccuse(success) {
   const input = document.getElementById("mojipit-accuse-input");
   const word = input ? input.value.trim() : "";
-  if (!word) { alert("単語を入力してください"); return; }
+  if (!word) {
+    alert("単語を入力してください");
+    return;
+  }
 
   const len = [...word].length;
+  const points = success ? mojipCalcPoints(len) : 1; // 成功時は文字数に応じた点数、失敗時は相手に1点
 
   const result = success ? "success" : "fail";
-  const msg = { type: "MOJIPIT_ACCUSE", result, word, len: success ? len : 0, playerIndex: mojipMyIndex };
+  const msg = {
+    type: "MOJIPIT_ACCUSE",
+    result,
+    word,
+    len: success ? len : 0,
+    points,
+    playerIndex: mojipMyIndex,
+  };
   if (lobbyIsHost) {
     lobbyBroadcast(msg);
-    mojipApplyAccuse(result, word, success ? len : 0, mojipMyIndex);
+    mojipApplyAccuse(result, word, success ? len : 0, points, mojipMyIndex);
   } else {
     lobbyHostConn.send(msg);
   }
@@ -300,14 +374,20 @@ function mojipJudgeAccuse(success) {
 }
 
 // ── 指摘結果を適用（全員共通） ──
-function mojipApplyAccuse(result, word, len, playerIndex) {
+function mojipApplyAccuse(result, word, len, points, playerIndex) {
   if (result === "success") {
-    mojipScores[playerIndex] += len;
-    mojipAddLog(`✅ ${mojipNames[playerIndex]} が「${word}」（${len}文字）の指摘成功！ +${len}点`);
+    mojipScores[playerIndex] += points;
+    mojipAddLog(
+      `✅ ${mojipNames[playerIndex]} が「${word}」（${len}文字）の指摘成功！ +${points}点`,
+    );
     if (playerIndex === mojipMyIndex) mojipPhase = "accuse";
   } else {
     mojipCanAccuse[playerIndex] = false;
-    mojipAddLog(`❌ ${mojipNames[playerIndex]} が「${word}」の指摘失敗。指摘権を失った`);
+    const opponentIndex = 1 - playerIndex;
+    mojipScores[opponentIndex] += 1; // 失敗したので相手に1点
+    mojipAddLog(
+      `❌ ${mojipNames[playerIndex]} が「${word}」の指摘失敗。${mojipNames[opponentIndex]} に 1点！ 指摘権を失った`,
+    );
     if (playerIndex === mojipMyIndex) mojipPhase = "place";
   }
   mojipRender();
@@ -343,36 +423,47 @@ function mojipUpdateStatus() {
     el.style.color = "#0f5132";
   }
 
-  const accuseBtn  = document.getElementById("mojipit-accuse-btn");
+  const accuseBtn = document.getElementById("mojipit-accuse-btn");
   const accuseArea = document.getElementById("mojipit-accuse-area");
-  const placeHint  = document.getElementById("mojipit-place-hint");
+  const placeHint = document.getElementById("mojipit-place-hint");
 
-  if (accuseBtn) accuseBtn.style.display =
-    (isMyTurn && mojipPhase === "place" && mojipCanAccuse[mojipMyIndex]) ? "inline-block" : "none";
-  if (accuseArea) accuseArea.style.display =
-    (isMyTurn && mojipPhase === "accuse") ? "block" : "none";
-  if (placeHint) placeHint.style.display =
-    (isMyTurn && mojipPhase === "place") ? "block" : "none";
+  if (accuseBtn)
+    accuseBtn.style.display =
+      isMyTurn && mojipPhase === "place" && mojipCanAccuse[mojipMyIndex]
+        ? "inline-block"
+        : "none";
+  if (accuseArea)
+    accuseArea.style.display =
+      isMyTurn && mojipPhase === "accuse" ? "block" : "none";
+  if (placeHint)
+    placeHint.style.display =
+      isMyTurn && mojipPhase === "place" ? "block" : "none";
 
   // 指摘権バッジ
   const b0 = document.getElementById("mojipit-accuse-badge-0");
   const b1 = document.getElementById("mojipit-accuse-badge-1");
-  if (b0) { b0.textContent = mojipCanAccuse[0] ? "指摘可" : "指摘不可"; b0.style.background = mojipCanAccuse[0] ? "#0d6efd" : "#aaa"; }
-  if (b1) { b1.textContent = mojipCanAccuse[1] ? "指摘可" : "指摘不可"; b1.style.background = mojipCanAccuse[1] ? "#0d6efd" : "#aaa"; }
+  if (b0) {
+    b0.textContent = mojipCanAccuse[0] ? "指摘可" : "指摘不可";
+    b0.style.background = mojipCanAccuse[0] ? "#0d6efd" : "#aaa";
+  }
+  if (b1) {
+    b1.textContent = mojipCanAccuse[1] ? "指摘可" : "指摘不可";
+    b1.style.background = mojipCanAccuse[1] ? "#0d6efd" : "#aaa";
+  }
 }
 
 // ── ゲーム終了 ──
 function mojipFinish() {
   mojipFinished = true;
   const modal = document.getElementById("mojipit-result-modal");
-  const text  = document.getElementById("mojipit-result-text");
+  const text = document.getElementById("mojipit-result-text");
   if (!modal || !text) return;
 
   const [s0, s1] = mojipScores;
   let msg;
-  if (s0 > s1)      msg = `🏆 ${mojipNames[0]} の勝ち！（${s0} vs ${s1}）`;
+  if (s0 > s1) msg = `🏆 ${mojipNames[0]} の勝ち！（${s0} vs ${s1}）`;
   else if (s1 > s0) msg = `🏆 ${mojipNames[1]} の勝ち！（${s1} vs ${s0}）`;
-  else              msg = `🤝 引き分け！（${s0} vs ${s1}）`;
+  else msg = `🤝 引き分け！（${s0} vs ${s1}）`;
 
   text.textContent = msg;
   modal.style.display = "flex";
@@ -395,7 +486,7 @@ function mojipAddLog(text) {
 // ── weblioリンクを入力と連動 ──
 function mojipUpdateWeblioLink() {
   const input = document.getElementById("mojipit-accuse-input");
-  const link  = document.getElementById("mojipit-weblio-link");
+  const link = document.getElementById("mojipit-weblio-link");
   if (!input || !link) return;
   const word = input.value.trim();
   link.href = word
@@ -412,13 +503,30 @@ function mojipHostReceive(peerId, data) {
     if (!MOJIPIT_KANA.includes(data.char)) return;
     if (mojipGrid.includes(data.char)) return; // 使用済み文字
     if (!mojipSelectableIndices().has(data.index)) return; // 隣接制限
-    lobbyBroadcast({ type: "MOJIPIT_PLACE", index: data.index, char: data.char });
+    lobbyBroadcast({
+      type: "MOJIPIT_PLACE",
+      index: data.index,
+      char: data.char,
+    });
     mojipApplyPlace(data.index, data.char);
   } else if (data.type === "MOJIPIT_ACCUSE") {
     const senderIndex = 1;
     if (mojipTurn !== senderIndex) return;
-    lobbyBroadcast({ type: "MOJIPIT_ACCUSE", result: data.result, word: data.word, len: data.len, playerIndex: senderIndex });
-    mojipApplyAccuse(data.result, data.word, data.len, senderIndex);
+    lobbyBroadcast({
+      type: "MOJIPIT_ACCUSE",
+      result: data.result,
+      word: data.word,
+      len: data.len,
+      points: data.points,
+      playerIndex: senderIndex,
+    });
+    mojipApplyAccuse(
+      data.result,
+      data.word,
+      data.len,
+      data.points,
+      senderIndex,
+    );
   }
 }
 
@@ -427,7 +535,13 @@ function mojipGuestReceive(data) {
   if (data.type === "MOJIPIT_PLACE") {
     mojipApplyPlace(data.index, data.char);
   } else if (data.type === "MOJIPIT_ACCUSE") {
-    mojipApplyAccuse(data.result, data.word, data.len, data.playerIndex);
+    mojipApplyAccuse(
+      data.result,
+      data.word,
+      data.len,
+      data.points,
+      data.playerIndex,
+    );
   } else if (data.type === "MOJIPIT_FINISH") {
     mojipFinished = true;
     mojipScores = data.scores;
