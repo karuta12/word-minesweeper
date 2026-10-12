@@ -10,7 +10,7 @@
     />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title>文字ポーカー対戦</title>
+    <title>文字ポーカー</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
       body {
@@ -64,6 +64,27 @@
         margin: 5px;
       }
 
+      /* 言語選択ボタン */
+      .lang-btn {
+        font-size: 22px;
+        padding: 14px 28px;
+        border-radius: 10px;
+        border: 3px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        margin: 8px;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .lang-btn.active {
+        border-color: #0066cc;
+        background: #e8f0fe;
+      }
+      #lang-section {
+        margin-bottom: 16px;
+      }
+
       #game-screen {
         display: none;
       }
@@ -94,6 +115,14 @@
         padding: 8px 14px;
         vertical-align: middle;
       }
+
+      #loading-msg {
+        display: none;
+        font-size: 15px;
+        color: #888;
+        margin: 6px 0;
+      }
+
       #word-list {
         margin-top: 8px;
         font-size: 16px;
@@ -114,7 +143,6 @@
         margin: 0 0 10px;
       }
 
-      /* 順位表 */
       #ranking {
         width: 100%;
         border-collapse: collapse;
@@ -153,7 +181,6 @@
         margin-top: 8px;
       }
 
-      /* ロビーの参加者リスト */
       #player-list {
         list-style: none;
         padding: 0;
@@ -163,72 +190,82 @@
       #player-list li {
         margin: 4px 0;
       }
-
-      /* 待機メッセージ */
-      #waiting-msg {
-        color: #888;
-        font-size: 15px;
-      }
     </style>
   </head>
   <body>
-    <h1>文字ポーカーver1.3</h1>
+    <h1 id="page-title">文字ポーカーver1.4</h1>
 
     <!-- ロビー画面 -->
     <div id="lobby-screen">
-      <input type="text" id="room-input" placeholder="合言葉（例: room123）" />
-      <br />
-      <button onclick="createRoom()">部屋を作る (ホスト)</button>
-      <button onclick="joinRoom()">部屋に参加</button>
-      <p id="status"></p>
-
-      <!-- ホスト用：参加者リスト＆開始ボタン -->
-      <div id="host-lobby" style="display: none">
-        <p>参加者：</p>
-        <ul id="player-list"></ul>
-        <button id="start-btn" onclick="hostStartGame()">
-          ▶ ゲームを開始する
+      <!-- 言語選択（ホストのみ選べる、ゲストはホストに合わせる） -->
+      <div id="lang-section">
+        <p style="margin: 4px 0; font-size: 14px; color: #666">
+          言語を選ぶ / Choose language (Host only)
+        </p>
+        <button class="lang-btn active" id="btn-ja" onclick="selectLang('ja')">
+          🇯🇵 日本語
+        </button>
+        <button class="lang-btn" id="btn-en" onclick="selectLang('en')">
+          🇬🇧 English
         </button>
       </div>
 
-      <!-- ゲスト用：待機メッセージ -->
-      <p id="waiting-msg" style="display: none">
-        ホストがゲームを開始するまでお待ちください…
+      <input type="text" id="room-input" placeholder="合言葉 / Room code" />
+      <br />
+      <button onclick="createRoom()">部屋を作る / Create Room (Host)</button>
+      <button onclick="joinRoom()">参加 / Join Room</button>
+      <p id="status"></p>
+
+      <!-- ホスト用 -->
+      <div id="host-lobby" style="display: none">
+        <p id="players-label">参加者：</p>
+        <ul id="player-list"></ul>
+        <button id="start-btn" onclick="hostStartGame()">
+          ▶ ゲームを開始 / Start Game
+        </button>
+      </div>
+
+      <!-- ゲスト用 -->
+      <p id="waiting-msg" style="display: none; color: #888">
+        ホストがゲームを開始するまでお待ちください… / Waiting for host to start…
       </p>
     </div>
 
     <!-- ゲーム画面 -->
     <div id="game-screen">
-      <h2>対戦ルーム: <span id="room-id-display"></span></h2>
+      <h2><span id="room-id-display"></span></h2>
 
       <!-- カード交換フェーズ -->
       <div id="exchange-section">
-        <p>あなたの手札（クリックで選択して交換）</p>
+        <p id="exchange-hint"></p>
         <div id="my-hand"></div>
         <br />
-        <button id="exchange-btn" onclick="exchangeCards()">
-          選択したカードを交換する（1回のみ）
-        </button>
+        <button
+          id="exchange-btn"
+          onclick="exchangeCards()"
+          id="exchange-btn"
+        ></button>
         <p id="exchange-status" style="color: #888; font-size: 14px"></p>
       </div>
 
       <!-- 単語入力フェーズ -->
       <div id="word-section">
-        <p style="font-size: 13px; color: #666; margin: 4px 0">
-          手札の文字を使って単語を入力 / 同じ文字を複数回使う場合は複数枚必要
-        </p>
-        <p style="margin: 6px 0"><strong>あなたの手札</strong></p>
+        <p
+          id="word-hint"
+          style="font-size: 13px; color: #666; margin: 4px 0"
+        ></p>
+        <p style="margin: 6px 0"><strong id="hand-label"></strong></p>
         <div id="my-hand-final"></div>
         <div id="word-input-area">
           <input
             type="text"
             id="word-input"
-            placeholder="単語を入力"
             onkeydown="if (event.key === 'Enter') submitWord();"
           />
-          <button onclick="submitWord()">確定</button>
-          <button id="finish-btn" onclick="finishWords()">終了→結果へ</button>
+          <button id="submit-btn" onclick="submitWord()"></button>
+          <button id="finish-btn" onclick="finishWords()"></button>
         </div>
+        <p id="loading-msg">⏳ Checking dictionary…</p>
         <div id="word-list"></div>
       </div>
 
@@ -238,98 +275,234 @@
         <table id="ranking">
           <thead>
             <tr>
-              <th>名前</th>
-              <th>単語</th>
-              <th>得点</th>
+              <th id="col-name"></th>
+              <th id="col-words"></th>
+              <th id="col-score"></th>
             </tr>
           </thead>
           <tbody id="ranking-body"></tbody>
         </table>
         <div id="rematch-area">
-          <button onclick="requestRematch()">🔄 再戦する</button>
+          <button id="rematch-btn" onclick="requestRematch()"></button>
           <p id="rematch-status"></p>
         </div>
       </div>
     </div>
 
     <script>
-      // ── 文字リスト ───────────────────────────────────────────────
-      const rawList = [
-        "の",
-        "に",
-        "た",
-        "い",
-        "は",
-        "を",
-        "と",
-        "る",
-        "が",
-        "し",
-        "で",
-        "て",
-        "な",
-        "か",
-        "れ",
-        "ら",
-        "も",
-        "う",
-        "す",
-        "り",
-        "こ",
-        "だ",
-        "ま",
-        "さ",
-        "き",
-        "め",
-        "く",
-        "あ",
-        "け",
-        "ど",
-        "ん",
-        "え",
-        "よ",
-        "つ",
-        "や",
-        "そ",
-        "わ",
-        "ち",
-        "み",
-        "せ",
-        "ろ",
-        "ば",
-        "お",
-        "じ",
-        "べ",
-        "ず",
-        "げ",
-        "ほ",
-        "へ",
-        "び",
-        "む",
-        "ご",
-        "ね",
-        "ぶ",
-        "ぐ",
-        "ぎ",
-        "ひ",
-        "づ",
-        "ぼ",
-        "ざ",
-        "ふ",
-        "ぞ",
-        "ゆ",
-        "ぜ",
-        "ぬ",
-        "ぱ",
-        "ぴ",
-        "ぽ",
-        "ぷ",
-        "ぺ",
-        "ぢ",
-        "ー",
-      ];
+      // ══════════════════════════════════════════════════════════════
+      // 言語定義
+      // ══════════════════════════════════════════════════════════════
+      const LANG_DATA = {
+        ja: {
+          // カードリスト（index 0-14: 黒1点×3, 15-34: 青2点×2, 35-: 赤3点×1）
+          chars: [
+            "の",
+            "に",
+            "た",
+            "い",
+            "は",
+            "を",
+            "と",
+            "る",
+            "が",
+            "し",
+            "で",
+            "て",
+            "な",
+            "か",
+            "れ",
+            "ら",
+            "も",
+            "う",
+            "す",
+            "り",
+            "こ",
+            "だ",
+            "ま",
+            "さ",
+            "き",
+            "め",
+            "く",
+            "あ",
+            "け",
+            "ど",
+            "ん",
+            "え",
+            "よ",
+            "つ",
+            "や",
+            "そ",
+            "わ",
+            "ち",
+            "み",
+            "せ",
+            "ろ",
+            "ば",
+            "お",
+            "じ",
+            "べ",
+            "ず",
+            "げ",
+            "ほ",
+            "へ",
+            "び",
+            "む",
+            "ご",
+            "ね",
+            "ぶ",
+            "ぐ",
+            "ぎ",
+            "ひ",
+            "づ",
+            "ぼ",
+            "ざ",
+            "ふ",
+            "ぞ",
+            "ゆ",
+            "ぜ",
+            "ぬ",
+            "ぱ",
+            "ぴ",
+            "ぽ",
+            "ぷ",
+            "ぺ",
+            "ぢ",
+            "ー",
+          ],
+          blackEnd: 15,
+          blueEnd: 35,
+          checkWord: null, // 判定なし（自己申告）
+          ui: {
+            title: "文字ポーカー",
+            roomLabel: (r) => `対戦ルーム: ${r}`,
+            exchangeHint: "あなたの手札（クリックで選択して交換）",
+            exchangeBtn: "選択したカードを交換する（1回のみ）",
+            exchangeWait: "交換完了。全員が終わるまでお待ちください…",
+            exchangeCount: (d, t) => `交換完了 ${d} / ${t} 人`,
+            wordHint:
+              "手札の文字を使って単語を入力 / 同じ文字を複数回使う場合は複数枚必要",
+            handLabel: "あなたの手札",
+            wordPlaceholder: "単語を入力",
+            submitBtn: "確定",
+            finishBtn: "終了→結果へ",
+            wordRow: (w, s) => `✅ <strong>${w}</strong>：${s}点`,
+            noWord: "単語なし",
+            scoreUnit: "点",
+            colName: "名前",
+            colWords: "単語",
+            colScore: "得点",
+            rematchBtn: "🔄 再戦する",
+            rematchWait:
+              "再戦リクエストを送りました。全員が揃うまで待っています…",
+            rematchCount: (n) => `再戦待ち：あと ${n} 人`,
+            win: "🎉 あなたの勝ち！",
+            last: "😢 最下位…",
+            rank: (n) => `あなたは ${n} 位`,
+            allUsed: "手札をすべて使いました！",
+            invalidCard: (w) => `「${w}」は手札にない文字が含まれています。`,
+            invalidWord: null, // 判定なし
+            confirmNoExchange: "1枚も交換しませんか？",
+            confirmOnlyYou: "参加者があなただけですが開始しますか？",
+            namePromptDefault: "ホスト",
+            namePromptGuest: "プレイヤー",
+            playersLabel: "参加者：",
+            waitingMsg: "ホストがゲームを開始するまでお待ちください…",
+            statusCreated: (r) => `部屋「${r}」を作りました`,
+            statusJoined: (r) => `部屋「${r}」に参加しました`,
+            statusPlayers: (names) => `参加者：${names.join("、")}`,
+          },
+        },
 
-      // ── 状態変数 ─────────────────────────────────────────────────
+        en: {
+          // カードリスト（index 0-8: 黒1点×3, 9-19: 青2点×2, 20-: 赤3点×1）
+          chars: [
+            "E",
+            "T",
+            "A",
+            "O",
+            "I",
+            "N",
+            "S",
+            "H",
+            "R", // 黒
+            "D",
+            "L",
+            "C",
+            "U",
+            "M",
+            "W",
+            "F",
+            "G",
+            "Y",
+            "P",
+            "B", // 青
+            "V",
+            "K",
+            "J",
+            "X",
+            "Q",
+            "Z", // 赤
+          ],
+          blackEnd: 9,
+          blueEnd: 20,
+          checkWord: async (word) => {
+            try {
+              const res = await fetch(
+                `https://api.dictionaryapi.dev/api/v2/entries/en/${word.toLowerCase()}`,
+              );
+              return res.ok;
+            } catch {
+              return true;
+            }
+          },
+          ui: {
+            title: "Word Poker",
+            roomLabel: (r) => `Room: ${r}`,
+            exchangeHint: "Your hand — tap to select, then exchange",
+            exchangeBtn: "Exchange selected cards (once only)",
+            exchangeWait: "Done! Waiting for everyone else…",
+            exchangeCount: (d, t) => `Exchange done: ${d} / ${t}`,
+            wordHint:
+              "Spell words using your hand. Same letter needs multiple cards.",
+            handLabel: "Your hand",
+            wordPlaceholder: "Type a word",
+            submitBtn: "✔ Submit",
+            finishBtn: "Done → Results",
+            wordRow: (w, s) => `✅ <strong>${w}</strong>: ${s}pt`,
+            noWord: "no words",
+            scoreUnit: "pt",
+            colName: "Name",
+            colWords: "Words",
+            colScore: "Score",
+            rematchBtn: "🔄 Rematch",
+            rematchWait: "Rematch requested. Waiting for everyone…",
+            rematchCount: (n) => `Waiting for ${n} more player(s)…`,
+            win: "🎉 You win!",
+            last: "😢 Last place…",
+            rank: (n) => `You ranked ${n}${["st", "nd", "rd"][n - 1] || "th"}`,
+            allUsed: "You used all your cards!",
+            invalidCard: (w) => `"${w}" uses letters not in your hand.`,
+            invalidWord: (w) => `"${w}" was not found in the dictionary.`,
+            confirmNoExchange: "Exchange nothing?",
+            confirmOnlyYou: "Only you are here. Start anyway?",
+            namePromptDefault: "Host",
+            namePromptGuest: "Player",
+            playersLabel: "Players:",
+            waitingMsg: "Waiting for the host to start the game…",
+            statusCreated: (r) => `Room "${r}" created`,
+            statusJoined: (r) => `Joined room "${r}"`,
+            statusPlayers: (names) => `Players: ${names.join(", ")}`,
+          },
+        },
+      };
+
+      // ══════════════════════════════════════════════════════════════
+      // 状態変数
+      // ══════════════════════════════════════════════════════════════
+      let lang = "ja"; // 選択中の言語（ホストが決定）
+      let L = LANG_DATA.ja; // 現在の言語データへの参照
+
       let deck = [];
       let myHand = [];
       let myName = "";
@@ -339,46 +512,80 @@
       let iFinished = false;
       let iWantRematch = false;
 
-      // マルチプレイヤー管理
-      // ホスト：conns = { peerId: { conn, name, exchanged, score, detail } }
-      // ゲスト：hostConn = conn to host
       let isHost = false;
-      let conns = {}; // ホスト用：接続中のゲスト
-      let hostConn = null; // ゲスト用：ホストへの接続
-      let playerCount = 0; // ホスト用：ゲーム開始時の参加人数（自分含む）
+      let conns = {};
+      let hostConn = null;
+      let playerCount = 0;
       let exchangeDoneCount = 0;
       let scoreDoneCount = 0;
       let rematchCount = 0;
       let peer;
       let roomName = "";
 
-      // ── デッキ初期化 ─────────────────────────────────────────────
+      // ══════════════════════════════════════════════════════════════
+      // 言語選択（ホスト用）
+      // ══════════════════════════════════════════════════════════════
+      function selectLang(l) {
+        lang = l;
+        L = LANG_DATA[l];
+        document
+          .getElementById("btn-ja")
+          .classList.toggle("active", l === "ja");
+        document
+          .getElementById("btn-en")
+          .classList.toggle("active", l === "en");
+      }
+
+      // ゲームUIのテキストを現在の言語で更新
+      function applyLangUI() {
+        document.getElementById("page-title").textContent = L.ui.title;
+        document.getElementById("exchange-hint").textContent =
+          L.ui.exchangeHint;
+        document.getElementById("exchange-btn").textContent = L.ui.exchangeBtn;
+        document.getElementById("word-hint").textContent = L.ui.wordHint;
+        document.getElementById("hand-label").textContent = L.ui.handLabel;
+        document.getElementById("word-input").placeholder =
+          L.ui.wordPlaceholder;
+        // 英語版は大文字入力
+        document.getElementById("word-input").oninput =
+          lang === "en"
+            ? () => {
+                document.getElementById("word-input").value = document
+                  .getElementById("word-input")
+                  .value.toUpperCase();
+              }
+            : null;
+        document.getElementById("submit-btn").textContent = L.ui.submitBtn;
+        document.getElementById("finish-btn").textContent = L.ui.finishBtn;
+        document.getElementById("col-name").textContent = L.ui.colName;
+        document.getElementById("col-words").textContent = L.ui.colWords;
+        document.getElementById("col-score").textContent = L.ui.colScore;
+        document.getElementById("rematch-btn").textContent = L.ui.rematchBtn;
+        document.getElementById("waiting-msg").textContent = L.ui.waitingMsg;
+        document.getElementById("players-label").textContent =
+          L.ui.playersLabel;
+      }
+
+      // ══════════════════════════════════════════════════════════════
+      // デッキ管理
+      // ══════════════════════════════════════════════════════════════
+      function cardProps(index) {
+        if (index < L.blackEnd) return { count: 3, color: "black", score: 1 };
+        if (index < L.blueEnd) return { count: 2, color: "blue", score: 2 };
+        return { count: 1, color: "red", score: 3 };
+      }
+
       function initDeck() {
         deck = [];
-        rawList.forEach((char, index) => {
-          let count, color, score;
-          if (index < 15) {
-            count = 3;
-            color = "black";
-            score = 1;
-          } else if (index < 35) {
-            count = 2;
-            color = "blue";
-            score = 2;
-          } else {
-            count = 1;
-            color = "red";
-            score = 3;
-          }
+        L.chars.forEach((char, index) => {
+          const { count, color, score } = cardProps(index);
           for (let i = 0; i < count; i++) deck.push({ char, color, score });
         });
         deck.sort(() => Math.random() - 0.5);
       }
 
-      // ── カードをN枚デッキから引く ────────────────────────────────
       function dealCards(n) {
         if (deck.length >= n) return deck.splice(0, n);
-        // デッキ不足時はランダム補充
         const result = [];
         for (let i = 0; i < n; i++) result.push(drawRandom());
         return result;
@@ -386,27 +593,16 @@
 
       function drawRandom() {
         const pool = [];
-        rawList.forEach((char, index) => {
-          let count, color, score;
-          if (index < 15) {
-            count = 3;
-            color = "black";
-            score = 1;
-          } else if (index < 35) {
-            count = 2;
-            color = "blue";
-            score = 2;
-          } else {
-            count = 1;
-            color = "red";
-            score = 3;
-          }
+        L.chars.forEach((char, index) => {
+          const { count, color, score } = cardProps(index);
           for (let i = 0; i < count; i++) pool.push({ char, color, score });
         });
         return pool[Math.floor(Math.random() * pool.length)];
       }
 
-      // ── ゲーム状態リセット ───────────────────────────────────────
+      // ══════════════════════════════════════════════════════════════
+      // ゲーム状態リセット
+      // ══════════════════════════════════════════════════════════════
       function resetGameState() {
         deck = [];
         myHand = [];
@@ -419,7 +615,6 @@
         scoreDoneCount = 0;
         rematchCount = 0;
 
-        // ゲストの状態もリセット
         Object.values(conns).forEach((g) => {
           g.exchanged = false;
           g.score = null;
@@ -427,7 +622,6 @@
           g.wantsRematch = false;
         });
 
-        // UI リセット
         document.getElementById("result-section").style.display = "none";
         document.getElementById("word-section").style.display = "none";
         document.getElementById("exchange-section").style.display = "block";
@@ -436,43 +630,46 @@
         document.getElementById("word-list").innerHTML = "";
         document.getElementById("word-input").value = "";
         document.getElementById("word-input").disabled = false;
+        document.getElementById("submit-btn").disabled = false;
         document.getElementById("finish-btn").disabled = false;
+        document.getElementById("loading-msg").style.display = "none";
         document.getElementById("rematch-status").innerText = "";
         document.querySelector("#rematch-area button").disabled = false;
         document.getElementById("my-hand").innerHTML = "";
         document.getElementById("my-hand-final").innerHTML = "";
       }
 
-      // ── 部屋作成（ホスト） ───────────────────────────────────────
+      // ══════════════════════════════════════════════════════════════
+      // 接続
+      // ══════════════════════════════════════════════════════════════
       function createRoom() {
         roomName = document.getElementById("room-input").value.trim();
-        if (!roomName) return alert("合言葉を入力してください");
-        myName = prompt("あなたの名前を入力してください", "ホスト") || "ホスト";
+        if (!roomName) return alert("合言葉/Room code を入力してください");
+        myName =
+          prompt("名前 / Your name:", L.ui.namePromptDefault) ||
+          L.ui.namePromptDefault;
         isHost = true;
+        // 言語選択UIを非表示に
+        document.getElementById("lang-section").style.display = "none";
 
         peer = new Peer("wordpoker-" + roomName);
         peer.on("open", () => {
           document.getElementById("status").innerText =
-            `部屋「${roomName}」を作りました`;
+            L.ui.statusCreated(roomName);
           document.getElementById("host-lobby").style.display = "block";
           updatePlayerList();
         });
-
-        // ゲストが接続してきたら登録
         peer.on("connection", (c) => {
           const guestId = c.peer;
           conns[guestId] = {
             conn: c,
-            name: "接続中...",
+            name: "…",
             exchanged: false,
             score: null,
             detail: null,
             wantsRematch: false,
           };
-          c.on("open", () => {
-            // 名前を要求
-            c.send({ type: "ASK_NAME" });
-          });
+          c.on("open", () => c.send({ type: "ASK_NAME", lang })); // 言語も伝える
           c.on("data", (data) => hostReceive(guestId, data));
           c.on("close", () => {
             delete conns[guestId];
@@ -481,37 +678,37 @@
         });
       }
 
-      // ── 参加者リスト更新（ホスト用） ────────────────────────────
       function updatePlayerList() {
         const ul = document.getElementById("player-list");
-        ul.innerHTML = `<li>👑 ${myName}（あなた・ホスト）</li>`;
+        ul.innerHTML = `<li>👑 ${myName}</li>`;
         Object.values(conns).forEach((g) => {
           ul.innerHTML += `<li>👤 ${g.name}</li>`;
         });
       }
 
-      // ── 部屋参加（ゲスト） ───────────────────────────────────────
       function joinRoom() {
         roomName = document.getElementById("room-input").value.trim();
-        if (!roomName) return alert("合言葉を入力してください");
-        myName =
-          prompt("あなたの名前を入力してください", "プレイヤー") ||
-          "プレイヤー";
+        if (!roomName) return alert("合言葉/Room code を入力してください");
+        // ゲストは言語未定（ホストから受け取る）
+        myName = prompt("名前 / Your name:", "Player") || "Player";
         isHost = false;
+        document.getElementById("lang-section").style.display = "none";
 
         peer = new Peer();
         peer.on("open", () => {
           hostConn = peer.connect("wordpoker-" + roomName);
           hostConn.on("open", () => {
             document.getElementById("status").innerText =
-              `部屋「${roomName}」に参加しました`;
+              `Joined room "${roomName}"`;
             document.getElementById("waiting-msg").style.display = "block";
           });
           hostConn.on("data", (data) => guestReceive(data));
         });
       }
 
-      // ── ホスト：ゲストからのデータ受信 ──────────────────────────
+      // ══════════════════════════════════════════════════════════════
+      // 通信ハンドラ
+      // ══════════════════════════════════════════════════════════════
       function hostReceive(guestId, data) {
         const guest = conns[guestId];
         if (!guest) return;
@@ -519,7 +716,6 @@
         if (data.type === "MY_NAME") {
           guest.name = data.name;
           updatePlayerList();
-          // 全ゲストに参加者リストを通知
           broadcastPlayerList();
         } else if (data.type === "EXCHANGE_DONE") {
           guest.exchanged = true;
@@ -538,76 +734,74 @@
         }
       }
 
-      // ── ゲスト：ホストからのデータ受信 ──────────────────────────
       function guestReceive(data) {
         if (data.type === "ASK_NAME") {
+          // ホストから言語情報を受け取る
+          lang = data.lang;
+          L = LANG_DATA[lang];
+          applyLangUI();
           hostConn.send({ type: "MY_NAME", name: myName });
         } else if (data.type === "PLAYER_LIST") {
-          // 参加者リストを受け取って表示（ゲスト用ロビー）
-          const names = data.names;
-          document.getElementById("status").innerText =
-            `参加者：${names.join("、")}`;
+          document.getElementById("status").innerText = L.ui.statusPlayers(
+            data.names,
+          );
         } else if (data.type === "HAND") {
-          // ゲーム開始：手札を受け取る
           document.getElementById("lobby-screen").style.display = "none";
           document.getElementById("game-screen").style.display = "block";
-          document.getElementById("room-id-display").innerText = roomName;
+          document.getElementById("room-id-display").innerText =
+            L.ui.roomLabel(roomName);
           myHand = data.hand;
           renderHand();
         } else if (data.type === "ALL_EXCHANGED") {
-          // 全員交換完了 → 単語入力フェーズへ
           document.getElementById("exchange-section").style.display = "none";
           document.getElementById("word-section").style.display = "block";
           renderHandFinal();
           document.getElementById("word-input").focus();
         } else if (data.type === "RESULT") {
-          // 結果を受け取って表示
           showResult(data.ranking);
         } else if (data.type === "REMATCH_START") {
-          // 再戦開始
           resetGameState();
           myHand = data.hand;
           renderHand();
         }
       }
 
-      // ── ホスト：全ゲストに送信 ───────────────────────────────────
       function broadcast(msg) {
         Object.values(conns).forEach((g) => g.conn.send(msg));
       }
 
-      // ── ホスト：参加者名リストを全ゲストに通知 ──────────────────
       function broadcastPlayerList() {
         const names = [myName, ...Object.values(conns).map((g) => g.name)];
         broadcast({ type: "PLAYER_LIST", names });
       }
 
-      // ── ホスト：ゲームを開始する ─────────────────────────────────
+      // ══════════════════════════════════════════════════════════════
+      // ゲーム進行
+      // ══════════════════════════════════════════════════════════════
       function hostStartGame() {
         const guestList = Object.values(conns);
         if (guestList.length === 0) {
-          if (!confirm("参加者があなただけですが開始しますか？")) return;
+          if (!confirm(L.ui.confirmOnlyYou)) return;
         }
-        playerCount = 1 + guestList.length; // ホスト含む
+        playerCount = 1 + guestList.length;
         exchangeDoneCount = 0;
         scoreDoneCount = 0;
 
-        // ゲーム画面へ
+        applyLangUI();
+
         document.getElementById("lobby-screen").style.display = "none";
         document.getElementById("game-screen").style.display = "block";
-        document.getElementById("room-id-display").innerText = roomName;
+        document.getElementById("room-id-display").innerText =
+          L.ui.roomLabel(roomName);
 
         initDeck();
         myHand = dealCards(7);
         renderHand();
-
-        // 各ゲストに手札を配る
-        guestList.forEach((g) => {
-          g.conn.send({ type: "HAND", hand: dealCards(7) });
-        });
+        guestList.forEach((g) =>
+          g.conn.send({ type: "HAND", hand: dealCards(7) }),
+        );
       }
 
-      // ── 手札表示（交換フェーズ） ─────────────────────────────────
       function renderHand() {
         const container = document.getElementById("my-hand");
         container.innerHTML = "";
@@ -621,7 +815,6 @@
         });
       }
 
-      // ── 手札表示（単語入力フェーズ） ────────────────────────────
       function renderHandFinal() {
         const container = document.getElementById("my-hand-final");
         container.innerHTML = "";
@@ -633,9 +826,8 @@
         });
       }
 
-      // ── カード交換 ───────────────────────────────────────────────
       function exchangeCards() {
-        if (hasExchanged) return alert("交換は1回までです！");
+        if (hasExchanged) return;
 
         const selectedDivs = document.querySelectorAll("#my-hand .selected");
         const indicesToReplace = Array.from(selectedDivs).map((div) =>
@@ -643,7 +835,7 @@
         );
 
         if (indicesToReplace.length === 0) {
-          if (!confirm("1枚も交換しませんか？")) return;
+          if (!confirm(L.ui.confirmNoExchange)) return;
         }
 
         indicesToReplace.forEach((index) => {
@@ -660,40 +852,36 @@
         } else {
           hostConn.send({ type: "EXCHANGE_DONE" });
           document.getElementById("exchange-status").innerText =
-            "交換完了。全員が終わるまでお待ちください…";
+            L.ui.exchangeWait;
         }
       }
 
-      // ── 交換完了人数を表示（ホスト用） ──────────────────────────
       function updateExchangeStatus() {
         document.getElementById("exchange-status").innerText =
-          `交換完了 ${exchangeDoneCount} / ${playerCount} 人`;
+          L.ui.exchangeCount(exchangeDoneCount, playerCount);
       }
 
-      // ── 全員が交換完了したら単語入力フェーズへ（ホスト用） ──────
       function checkAllExchanged() {
         if (exchangeDoneCount < playerCount) return;
-        // 全ゲストに通知
         broadcast({ type: "ALL_EXCHANGED" });
-        // ホスト自身も移行
         document.getElementById("exchange-section").style.display = "none";
         document.getElementById("word-section").style.display = "block";
         renderHandFinal();
         document.getElementById("word-input").focus();
       }
 
-      // ── 単語確定 ─────────────────────────────────────────────────
-      function submitWord() {
+      // ── 単語確定（英語はAPI判定あり） ────────────────────────────
+      async function submitWord() {
         const input = document.getElementById("word-input");
-        const word = input.value.trim();
+        let word = input.value.trim();
         if (!word) return;
-        input.value = "";
+        if (lang === "en") word = word.toUpperCase();
 
+        // 手札チェック
         const handCopy = myHand.map((c) => ({ ...c }));
-        let score = 0;
-        let valid = true;
+        let score = 0,
+          valid = true;
         const usedIndices = [];
-
         for (const ch of word) {
           const idx = handCopy.findIndex(
             (c) => c.char === ch && !c._tmpUsed && !c.used,
@@ -706,46 +894,66 @@
           score += handCopy[idx].score;
           usedIndices.push(idx);
         }
-
         if (!valid) {
-          alert(`「${word}」は手札にない文字が含まれています。`);
+          alert(L.ui.invalidCard(word));
           input.focus();
           return;
         }
 
+        // 英語版：辞書APIで存在チェック
+        if (L.checkWord) {
+          setLoading(true);
+          const exists = await L.checkWord(word);
+          setLoading(false);
+          if (!exists) {
+            alert(L.ui.invalidWord(word));
+            input.focus();
+            return;
+          }
+        }
+
+        // 確定
+        input.value = "";
         usedIndices.forEach((i) => {
           myHand[i].used = true;
         });
         myTotalScore += score;
         myWords.push({ word, score });
-
         renderHandFinal();
         updateWordList();
         input.focus();
 
         if (myHand.filter((c) => !c.used).length === 0) {
-          alert("手札をすべて使いました！");
+          alert(L.ui.allUsed);
           finishWords();
         }
       }
 
-      // ── 単語リスト表示 ───────────────────────────────────────────
+      function setLoading(on) {
+        document.getElementById("loading-msg").style.display = on
+          ? "block"
+          : "none";
+        document.getElementById("submit-btn").disabled = on;
+        document.getElementById("word-input").disabled = on;
+      }
+
       function updateWordList() {
         document.getElementById("word-list").innerHTML = myWords
-          .map((w) => `✅ <strong>${w.word}</strong>：${w.score}点`)
+          .map((w) => L.ui.wordRow(w.word, w.score))
           .join("<br>");
       }
 
-      // ── 単語入力終了 ─────────────────────────────────────────────
       function finishWords() {
         if (iFinished) return;
         iFinished = true;
         document.getElementById("word-input").disabled = true;
+        document.getElementById("submit-btn").disabled = true;
         document.getElementById("finish-btn").disabled = true;
 
         const detail =
-          myWords.map((w) => `${w.word}(${w.score}点)`).join("、") ||
-          "単語なし";
+          myWords
+            .map((w) => `${w.word}(${w.score}${L.ui.scoreUnit})`)
+            .join(lang === "ja" ? "、" : ", ") || L.ui.noWord;
 
         if (isHost) {
           scoreDoneCount++;
@@ -755,31 +963,27 @@
         }
       }
 
-      // ── 全員得点提出完了（ホスト用） ────────────────────────────
       function checkAllScored() {
         if (scoreDoneCount < playerCount) return;
 
-        // 順位表を作成
         const myDetail =
-          myWords.map((w) => `${w.word}(${w.score}点)`).join("、") ||
-          "単語なし";
+          myWords
+            .map((w) => `${w.word}(${w.score}${L.ui.scoreUnit})`)
+            .join(lang === "ja" ? "、" : ", ") || L.ui.noWord;
         const allScores = [
           { name: myName, total: myTotalScore, detail: myDetail },
           ...Object.values(conns).map((g) => ({
             name: g.name,
             total: g.score ?? 0,
-            detail: g.detail || "単語なし",
+            detail: g.detail || L.ui.noWord,
           })),
         ];
         allScores.sort((a, b) => b.total - a.total);
 
-        // 全員に結果を送信
         broadcast({ type: "RESULT", ranking: allScores });
-        // ホスト自身も表示
         showResult(allScores);
       }
 
-      // ── 結果表示 ─────────────────────────────────────────────────
       function showResult(ranking) {
         document.getElementById("word-section").style.display = "none";
         document.getElementById("exchange-section").style.display = "none";
@@ -792,37 +996,36 @@
           const rankClass = ["rank1", "rank2", "rank3"][i] || "";
           const isMe = p.name === myName;
           tr.className = (rankClass + (isMe ? " me" : "")).trim();
-          tr.innerHTML = `<td>${p.name}</td><td style="font-size:13px">${p.detail}</td><td>${p.total}点</td>`;
+          tr.innerHTML = `<td>${p.name}</td><td style="font-size:13px">${p.detail}</td><td>${p.total}${L.ui.scoreUnit}</td>`;
           tbody.appendChild(tr);
         });
 
         const label = document.getElementById("result-label");
         const myRank = ranking.findIndex((p) => p.name === myName) + 1;
+        const topScore = ranking[0].total;
+        const bottomScore = ranking[ranking.length - 1].total;
         if (
           myRank === 1 &&
-          ranking.filter((p) => p.total === ranking[0].total).length === 1
+          ranking.filter((p) => p.total === topScore).length === 1
         ) {
-          label.textContent = "🎉 あなたの勝ち！";
+          label.textContent = L.ui.win;
           label.style.color = "#cc0000";
         } else if (
           myRank === ranking.length &&
-          ranking.filter((p) => p.total === ranking[ranking.length - 1].total)
-            .length === 1
+          ranking.filter((p) => p.total === bottomScore).length === 1
         ) {
-          label.textContent = "😢 最下位…";
+          label.textContent = L.ui.last;
           label.style.color = "#0066cc";
         } else {
-          label.textContent = `あなたは ${myRank} 位`;
+          label.textContent = L.ui.rank(myRank);
           label.style.color = "#333";
         }
       }
 
-      // ── 再戦リクエスト ───────────────────────────────────────────
       function requestRematch() {
         iWantRematch = true;
         document.querySelector("#rematch-area button").disabled = true;
-        document.getElementById("rematch-status").innerText =
-          "再戦リクエストを送りました。全員が揃うまで待っています…";
+        document.getElementById("rematch-status").innerText = L.ui.rematchWait;
 
         if (isHost) {
           rematchCount++;
@@ -832,20 +1035,17 @@
         }
       }
 
-      // ── 全員再戦希望で再開（ホスト用） ──────────────────────────
       function checkAllRematch() {
         const waiting = playerCount - rematchCount;
         if (waiting > 0) {
           document.getElementById("rematch-status").innerText =
-            `再戦待ち：あと ${waiting} 人`;
+            L.ui.rematchCount(waiting);
           return;
         }
-        // 全員揃った：ホストがリセットして新しい手札を配る
         resetGameState();
         initDeck();
         myHand = dealCards(7);
         renderHand();
-
         Object.values(conns).forEach((g) => {
           g.conn.send({ type: "REMATCH_START", hand: dealCards(7) });
         });
