@@ -47,15 +47,18 @@ function bingoGenerateAllCards(playerCount) {
 
 // ── ゲーム開始（ホスト） ──
 function bingoHostStart(playerCount, names, allCards) {
+  console.log('[bingo] bingoHostStart playerCount:', playerCount, 'names:', names, 'allCards length:', allCards?.length);
   bingoMyIndex       = 0;
   bingoMyPlayerCount = playerCount;
   bingoPlayerNames   = names;
-  bingoAllCards      = allCards; // 全員分のカードを保持
+  bingoAllCards      = allCards;
   bingoWordHistory   = [];
   bingoLastChar      = null;
   bingoCurrentTurn   = 0;
   bingoGameFinished  = false;
   bingoCheckedChars  = names.map(() => new Set(['り']));
+  const countEl = document.getElementById('bingo-player-count-display');
+  if (countEl) countEl.innerText = `参加人数: ${playerCount}人`;
   showScreen('bingo-screen');
   bingoRenderBoard();
   bingoUpdateTurnDisplay();
@@ -63,15 +66,18 @@ function bingoHostStart(playerCount, names, allCards) {
 
 // ── ゲーム開始（ゲスト） ──
 function bingoGuestStart(data) {
+  console.log('[bingo] bingoGuestStart data:', data);
   bingoMyIndex       = data.myIndex;
   bingoMyPlayerCount = data.playerCount;
-  bingoPlayerNames   = data.names;
-  bingoAllCards      = data.allCards; // 全員分のカードを受け取る
+  bingoPlayerNames   = data.names   || [];
+  bingoAllCards      = data.allCards || [];
   bingoWordHistory   = [];
   bingoLastChar      = null;
   bingoCurrentTurn   = 0;
   bingoGameFinished  = false;
   bingoCheckedChars  = data.names.map(() => new Set(['り']));
+  const countEl = document.getElementById('bingo-player-count-display');
+  if (countEl) countEl.innerText = `参加人数: ${data.playerCount}人`;
   showScreen('bingo-screen');
   bingoRenderBoard();
   bingoUpdateTurnDisplay();
@@ -83,6 +89,19 @@ function bingoRenderBoard() {
   container.innerHTML = '';
   document.getElementById('bingo-historyList').innerHTML = '';
   document.getElementById('bingo-errorMsg').innerText = '';
+
+  console.log('[bingo] bingoRenderBoard called');
+  console.log('[bingo] bingoPlayerNames:', bingoPlayerNames);
+  console.log('[bingo] bingoAllCards:', bingoAllCards);
+
+  if (!bingoPlayerNames.length) {
+    container.innerHTML = '<p style="color:red">エラー: プレイヤー情報がありません</p>';
+    return;
+  }
+  if (!bingoAllCards.length) {
+    container.innerHTML = '<p style="color:red">エラー: カードデータがありません</p>';
+    return;
+  }
 
   bingoPlayerNames.forEach((name, pi) => {
     const isMe = (pi === bingoMyIndex);
@@ -229,7 +248,7 @@ function bingoGuestReceive(data) {
     bingoGameFinished = true;
     const modal = document.getElementById('bingo-winModal');
     document.getElementById('bingo-winnerText').innerText =
-      `${data.winner} さんが 2列ビンゴを達成して勝利しました！ 🎉`;
+      `${data.winner} さんが ビンゴを達成して勝利しました！ 🎉`;
     modal.style.display = 'flex';
     bingoUpdateTurnDisplay();
   }
@@ -274,10 +293,9 @@ function bingoTriggerWin(name) {
   bingoGameFinished = true;
   const modal = document.getElementById('bingo-winModal');
   document.getElementById('bingo-winnerText').innerText =
-    `${name} さんが 2列ビンゴを達成して勝利しました！ 🎉`;
+    `${name} さんが ビンゴを達成して勝利しました！ 🎉`;
   modal.style.display = 'flex';
   bingoUpdateTurnDisplay();
-  // ホストがゲスト全員に勝利を通知
   if (lobbyIsHost) {
     lobbyBroadcast({ type: 'BINGO_WIN', winner: name });
   }
