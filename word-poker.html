@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>文字ポーカー対戦</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        background: #f0f2f5;
+        margin: 0;
+        padding: 20px;
+      }
+      .card {
+        display: inline-block;
+        width: 50px;
+        height: 70px;
+        margin: 5px;
+        border-radius: 8px;
+        line-height: 70px;
+        font-size: 24px;
+        font-weight: bold;
+        background: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        user-select: none;
+      }
+      .black {
+        color: #333;
+        border: 2px solid #333;
+      }
+      .blue {
+        color: #0066cc;
+        border: 2px solid #0066cc;
+      }
+      .red {
+        color: #cc0000;
+        border: 2px solid #cc0000;
+      }
+      .selected {
+        transform: translateY(-10px);
+        background: #fff3cd;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      #game-screen {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>文字ポーカー</h1>
+
+    <!-- 部屋作り・参加画面 -->
+    <div id="lobby-screen">
+      <input type="text" id="room-input" placeholder="合言葉（例: room123）" />
+      <br />
+      <button onclick="createRoom()">部屋を作る (ホスト)</button>
+      <button onclick="joinRoom()">部屋に参加 (ゲスト)</button>
+      <p id="status"></p>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="game-screen">
+      <h2>対戦ルーム: <span id="room-id-display"></span></h2>
+      <p>あなたの手札（クリックで選択して交換）</p>
+      <div id="my-hand"></div>
+      <br />
+      <button id="exchange-btn" onclick="exchangeCards()">
+        選択したカードを交換する（1回のみ）
+      </button>
+      <h3>相手の手札状況</h3>
+      <p id="opponent-status">相手の選択を待っています...</p>
+    </div>
+
+    <script>
+      // 文字リストの定義とレアリティ（点数・色）の自動振り分け
+      const rawList = [
+        "の",
+        "に",
+        "た",
+        "い",
+        "は",
+        "を",
+        "と",
+        "る",
+        "が",
+        "し",
+        "で",
+        "て",
+        "な",
+        "か",
+        "れ", // 1~15: 黒 (1点, 3枚)
+        "ら",
+        "も",
+        "う",
+        "す",
+        "り",
+        "こ",
+        "だ",
+        "ま",
+        "さ",
+        "き",
+        "め",
+        "く",
+        "あ",
+        "け",
+        "ど",
+        "ん",
+        "え",
+        "よ",
+        "つ",
+        "や", // 16~35: 青 (2点, 2枚)
+        "そ",
+        "わ",
+        "ち",
+        "み",
+        "せ",
+        "ろ",
+        "ば",
+        "お",
+        "じ",
+        "べ",
+        "ず",
+        "げ",
+        "ほ",
+        "へ",
+        "び",
+        "む",
+        "ご",
+        "ね",
+        "ぶ",
+        "ぐ",
+        "ぎ",
+        "ひ",
+        "づ",
+        "ぼ",
+        "ざ",
+        "ふ",
+        "ぞ",
+        "ゆ",
+        "ぜ",
+        "ぬ",
+        "ぱ",
+        "ぴ",
+        "ぽ",
+        "ぷ",
+        "ぺ",
+        "ぢ",
+        "ー", // 36~: 赤 (3点, 1枚)
+      ];
+
+      let deck = [];
+      let myHand = [];
+      let hasExchanged = false;
+      let peer, conn;
+
+      function initDeck() {
+        deck = [];
+        rawList.forEach((char, index) => {
+          let count = 3;
+          let color = "black";
+          let score = 1;
+          if (index >= 15 && index < 35) {
+            count = 2;
+            color = "blue";
+            score = 2;
+          } else if (index >= 35) {
+            count = 1;
+            color = "red";
+            score = 3;
+          }
+
+          for (let i = 0; i < count; i++) {
+            deck.push({ char, color, score });
+          }
+        });
+        // シャッフル
+        deck.sort(() => Math.random() - 0.5);
+      }
+
+      function createRoom() {
+        const roomName = document.getElementById("room-input").value;
+        if (!roomName) return alert("合言葉を入力してください");
+
+        peer = new Peer("wordpoker-" + roomName);
+        peer.on("open", (id) => {
+          document.getElementById("status").innerText =
+            "部屋を作りました。相手の参加を待っています...";
+        });
+        peer.on("connection", (c) => {
+          conn = c;
+          setupConnection();
+          startGameAsHost();
+        });
+      }
+
+      function joinRoom() {
+        const roomName = document.getElementById("room-input").value;
+        if (!roomName) return alert("合言葉を入力してください");
+
+        peer = new Peer();
+        peer.on("open", (id) => {
+          conn = peer.connect("wordpoker-" + roomName);
+          setupConnection();
+        });
+      }
+
+      function setupConnection() {
+        conn.on("open", () => {
+          document.getElementById("lobby-screen").style.display = "none";
+          document.getElementById("game-screen").style.display = "block";
+          document.getElementById("room-id-display").innerText =
+            document.getElementById("room-input").value;
+        });
+        conn.on("data", (data) => {
+          if (data.type === "DECK_AND_HAND") {
+            deck = data.deck;
+            myHand = data.hand;
+            renderHand();
+          } else if (data.type === "STATUS") {
+            document.getElementById("opponent-status").innerText = data.text;
+          }
+        });
+      }
+
+      function startGameAsHost() {
+        initDeck();
+        // ゲストの手札を配る
+        let guestHand = deck.splice(0, 7);
+        // ホストの手札を配る
+        myHand = deck.splice(0, 7);
+
+        renderHand();
+
+        // ゲストにデータを送信
+        conn.send({ type: "DECK_AND_HAND", deck: deck, hand: guestHand });
+      }
+
+      function renderHand() {
+        const container = document.getElementById("my-hand");
+        container.innerHTML = "";
+        myHand.forEach((card, index) => {
+          const div = document.createElement("div");
+          div.className = `card ${card.color}`;
+          div.innerText = card.char;
+          div.onclick = () => div.classList.toggle("selected");
+          div.dataset.index = index;
+          container.appendChild(div);
+        });
+      }
+
+      function exchangeCards() {
+        if (hasExchanged) return alert("交換は1回までです！");
+
+        const selectedDivs = document.querySelectorAll("#my-hand .selected");
+        const indicesToReplace = Array.from(selectedDivs).map((div) =>
+          parseInt(div.dataset.index),
+        );
+
+        if (indicesToReplace.length === 0) {
+          if (!confirm("1枚も交換しませんか？")) return;
+        }
+
+        indicesToReplace.forEach((index) => {
+          if (deck.length > 0) {
+            myHand[index] = deck.pop(); // 山札から補充
+          }
+        });
+
+        hasExchanged = true;
+        document.getElementById("exchange-btn").disabled = true;
+        renderHand();
+        conn.send({ type: "STATUS", text: "相手はカード交換を終えました" });
+      }
+    </script>
+  </body>
+</html>
