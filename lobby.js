@@ -156,3 +156,43 @@ function lobbyJoinRoom() {
     });
   });
 }
+// ── ゲーム選択（ホストのみ） ──
+function lobbySelectGame(game) {
+  const guestList = Object.values(lobbyConns);
+  const names = [lobbyMyName, ...guestList.map((g) => g.name)];
+  const playerCount = names.length;
+
+  if (game === "poker") {
+    pokerHostStart(lobbyLang, guestList, lobbyMyName);
+  } else if (game === "bingo") {
+    const allCards = bingoGenerateAllCards(playerCount);
+    guestList.forEach((g, i) => {
+      g.conn.send({
+        type: "GAME_SELECTED",
+        game: "bingo",
+        myIndex: i + 1,
+        playerCount,
+        names,
+        myCard: allCards[i + 1],
+      });
+    });
+    bingoHostStart(playerCount, names, allCards[0]);
+  } else if (game === "mine") {
+    if (playerCount < 2) return alert("マインスイーパーは2人以上必要です");
+    const mineNames = { 1: lobbyMyName, 2: guestList[0].name };
+    const question = minePickQuestion();
+    const cellsData = mineBuildCellsData(question.word);
+    guestList.forEach((g) => {
+      g.conn.send({
+        type: "GAME_SELECTED",
+        game: "mine",
+        playerNum: 2,
+        names: mineNames,
+        genre: question.genre,
+        wordLength: question.word.length,
+        cellsData: cellsData,
+      });
+    });
+    mineHostStart(mineNames, question, cellsData);
+  }
+}
