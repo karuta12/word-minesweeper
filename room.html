@@ -4,178 +4,453 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta
+      http-equiv="Cache-Control"
+      content="no-cache, no-store, must-revalidate"
+    />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>ゲームロビー</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap"
+      rel="stylesheet"
+    />
     <style>
       /* ══ 共通 ══ */
-      body { font-family: 'Zen Maru Gothic', sans-serif; background: #f0f2f5; margin: 0; padding: 16px; text-align: center; }
+      body {
+        font-family: "Zen Maru Gothic", sans-serif;
+        background: #f0f2f5;
+        margin: 0;
+        padding: 16px;
+        text-align: center;
+      }
 
-      .screen { display: none; }
-      .screen.active { display: block; }
+      .screen {
+        display: none;
+      }
+      .screen.active {
+        display: block;
+      }
 
       /* ══ ゲーム選択ロビー ══ */
-      #select-screen { max-width: 540px; margin: 0 auto; }
+      #select-screen {
+        max-width: 540px;
+        margin: 0 auto;
+      }
       .game-card {
-        background: white; border-radius: 14px; padding: 20px 24px; margin: 12px 0;
-        box-shadow: 0 3px 10px rgba(0,0,0,.1); cursor: pointer; border: 3px solid transparent;
-        transition: border-color .15s, box-shadow .15s; text-align: left;
+        background: white;
+        border-radius: 14px;
+        padding: 20px 24px;
+        margin: 12px 0;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+        text-align: left;
       }
-      .game-card:hover { border-color: #0066cc; box-shadow: 0 4px 16px rgba(0,102,204,.2); }
-      .game-card h3 { margin: 0 0 6px; font-size: 20px; }
-      .game-card p  { margin: 0; font-size: 13px; color: #666; }
+      .game-card:hover {
+        border-color: #0066cc;
+        box-shadow: 0 4px 16px rgba(0, 102, 204, 0.2);
+      }
+      .game-card h3 {
+        margin: 0 0 6px;
+        font-size: 20px;
+      }
+      .game-card p {
+        margin: 0;
+        font-size: 13px;
+        color: #666;
+      }
       .game-card .badge {
-        display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 99px; margin-bottom: 6px;
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 99px;
+        margin-bottom: 6px;
       }
-      .badge-online  { background: #e8f0fe; color: #1a73e8; }
-      .badge-offline { background: #e6f4ea; color: #1e7e34; }
+      .badge-online {
+        background: #e8f0fe;
+        color: #1a73e8;
+      }
+      .badge-offline {
+        background: #e6f4ea;
+        color: #1e7e34;
+      }
 
       /* ══ 文字ポーカー ══ */
       .card-tile {
-        display: inline-block; width: 50px; height: 70px; margin: 5px; border-radius: 8px;
-        line-height: 70px; font-size: 24px; font-weight: bold; background: white;
-        box-shadow: 0 2px 5px rgba(0,0,0,.2); cursor: pointer; user-select: none; transition: transform .15s;
+        display: inline-block;
+        width: 50px;
+        height: 70px;
+        margin: 5px;
+        border-radius: 8px;
+        line-height: 70px;
+        font-size: 24px;
+        font-weight: bold;
+        background: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        cursor: pointer;
+        user-select: none;
+        transition: transform 0.15s;
       }
-      .black { color: #333; border: 2px solid #333; }
-      .blue  { color: #0066cc; border: 2px solid #0066cc; }
-      .red   { color: #cc0000; border: 2px solid #cc0000; }
-      .selected { transform: translateY(-10px); background: #fff3cd; }
-      .used { opacity: .35; transform: none !important; cursor: default; }
+      .black {
+        color: #333;
+        border: 2px solid #333;
+      }
+      .blue {
+        color: #0066cc;
+        border: 2px solid #0066cc;
+      }
+      .red {
+        color: #cc0000;
+        border: 2px solid #cc0000;
+      }
+      .selected {
+        transform: translateY(-10px);
+        background: #fff3cd;
+      }
+      .used {
+        opacity: 0.35;
+        transform: none !important;
+        cursor: default;
+      }
 
       .lang-btn {
-        font-size: 20px; padding: 12px 24px; border-radius: 10px;
-        border: 3px solid #ccc; background: #fff; cursor: pointer; margin: 6px;
-        transition: border-color .15s, background .15s;
+        font-size: 20px;
+        padding: 12px 24px;
+        border-radius: 10px;
+        border: 3px solid #ccc;
+        background: #fff;
+        cursor: pointer;
+        margin: 6px;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
       }
-      .lang-btn.active { border-color: #0066cc; background: #e8f0fe; }
+      .lang-btn.active {
+        border-color: #0066cc;
+        background: #e8f0fe;
+      }
 
       .room-btn {
-        font-size: 16px; padding: 12px 28px; border-radius: 10px;
-        border: none; cursor: pointer; margin: 6px; font-weight: bold;
-        transition: opacity .15s, transform .1s;
+        font-size: 16px;
+        padding: 12px 28px;
+        border-radius: 10px;
+        border: none;
+        cursor: pointer;
+        margin: 6px;
+        font-weight: bold;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
       }
-      .room-btn:hover { opacity: .85; transform: translateY(-1px); }
-      .room-btn:active { transform: translateY(0); }
-      .room-btn-primary   { background: #0066cc; color: #fff; }
-      .room-btn-secondary { background: #555; color: #fff; }
+      .room-btn:hover {
+        opacity: 0.85;
+        transform: translateY(-1px);
+      }
+      .room-btn:active {
+        transform: translateY(0);
+      }
+      .room-btn-primary {
+        background: #0066cc;
+        color: #fff;
+      }
+      .room-btn-secondary {
+        background: #555;
+        color: #fff;
+      }
 
       #poker-word-input-area {
-        margin: 10px 0; padding: 10px; background: #fff; border-radius: 8px;
-        box-shadow: 0 1px 4px rgba(0,0,0,.12); display: inline-block;
+        margin: 10px 0;
+        padding: 10px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        display: inline-block;
       }
       #poker-word-input-area input {
-        font-size: 22px; padding: 6px 10px; width: 180px; text-align: center;
-        border: 2px solid #aaa; border-radius: 6px; vertical-align: middle;
+        font-size: 22px;
+        padding: 6px 10px;
+        width: 180px;
+        text-align: center;
+        border: 2px solid #aaa;
+        border-radius: 6px;
+        vertical-align: middle;
       }
       #poker-ranking {
-        width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 16px;
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 16px;
       }
-      #poker-ranking th { background: #555; color: #fff; padding: 6px 10px; }
-      #poker-ranking td { padding: 6px 10px; border-bottom: 1px solid #ddd; }
-      #poker-ranking tr.me { background: #fffde7; font-weight: bold; }
-      #poker-ranking tr.rank1 td:first-child::before { content: "🥇 "; }
-      #poker-ranking tr.rank2 td:first-child::before { content: "🥈 "; }
-      #poker-ranking tr.rank3 td:first-child::before { content: "🥉 "; }
+      #poker-ranking th {
+        background: #555;
+        color: #fff;
+        padding: 6px 10px;
+      }
+      #poker-ranking td {
+        padding: 6px 10px;
+        border-bottom: 1px solid #ddd;
+      }
+      #poker-ranking tr.me {
+        background: #fffde7;
+        font-weight: bold;
+      }
+      #poker-ranking tr.rank1 td:first-child::before {
+        content: "🥇 ";
+      }
+      #poker-ranking tr.rank2 td:first-child::before {
+        content: "🥈 ";
+      }
+      #poker-ranking tr.rank3 td:first-child::before {
+        content: "🥉 ";
+      }
 
       /* ══ ビンゴ ══ */
-      #bingo-screen { font-family: sans-serif; }
-      .bingo-boards-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-      .bingo-player-card {
-        background: #fff; border: 2px solid #ccc; border-radius: 8px; padding: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,.1);
+      #bingo-screen {
+        font-family: sans-serif;
       }
-      .bingo-player-card.active-turn { border-color: #d9534f; box-shadow: 0 0 10px rgba(217,83,79,.5); }
+      .bingo-boards-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 20px;
+      }
+      .bingo-player-card {
+        background: #fff;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .bingo-player-card.active-turn {
+        border-color: #d9534f;
+        box-shadow: 0 0 10px rgba(217, 83, 79, 0.5);
+      }
       .bingo-player-card h3 {
-        margin-top: 0; color: #007bff; display: flex; justify-content: space-between;
-        align-items: center; font-size: 18px;
+        margin-top: 0;
+        color: #007bff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 18px;
       }
       .bingo-grid {
-        display: grid; grid-template-columns: repeat(5, 55px); grid-template-rows: repeat(5, 55px); gap: 4px;
+        display: grid;
+        grid-template-columns: repeat(5, 55px);
+        grid-template-rows: repeat(5, 55px);
+        gap: 4px;
       }
       .bingo-cell {
-        background: #e9ecef; display: flex; align-items: center; justify-content: center;
-        font-size: 18px; font-weight: bold; border-radius: 4px; user-select: none;
-        cursor: pointer; transition: background .2s;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        font-weight: bold;
+        border-radius: 4px;
+        user-select: none;
+        cursor: pointer;
+        transition: background 0.2s;
       }
-      .bingo-cell.center  { background: #ffc107; color: #fff; }
-      .bingo-cell.checked { background: #28a745; color: #fff; text-decoration: line-through; }
-      .reach-badge { background: #ffc107; color: #333; padding: 2px 6px; border-radius: 10px; font-weight: bold; font-size: 13px; }
-      .bingo-badge { background: #28a745; color: white; padding: 2px 6px; border-radius: 10px; font-weight: bold; font-size: 13px; }
+      .bingo-cell.center {
+        background: #ffc107;
+        color: #fff;
+      }
+      .bingo-cell.checked {
+        background: #28a745;
+        color: #fff;
+        text-decoration: line-through;
+      }
+      .reach-badge {
+        background: #ffc107;
+        color: #333;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 13px;
+      }
+      .bingo-badge {
+        background: #28a745;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-weight: bold;
+        font-size: 13px;
+      }
       .bingo-turn-indicator {
-        font-size: 20px; font-weight: bold; color: #d9534f; background: #fff3cd;
-        border: 1px solid #ffeeba; padding: 10px; border-radius: 6px;
-        max-width: 400px; margin: 15px auto;
+        font-size: 20px;
+        font-weight: bold;
+        color: #d9534f;
+        background: #fff3cd;
+        border: 1px solid #ffeeba;
+        padding: 10px;
+        border-radius: 6px;
+        max-width: 400px;
+        margin: 15px auto;
       }
       .bingo-modal {
-        display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,.6); justify-content: center; align-items: center;
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        justify-content: center;
+        align-items: center;
       }
       .bingo-modal-content {
-        background: #fff; padding: 30px; border-radius: 12px; text-align: center;
-        box-shadow: 0 5px 15px rgba(0,0,0,.3); animation: popUp .3s ease-out; max-width: 400px; width: 90%;
+        background: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        animation: popUp 0.3s ease-out;
+        max-width: 400px;
+        width: 90%;
       }
-      .bingo-modal-content h2 { color: #28a745; margin-top: 0; font-size: 28px; }
-      @keyframes popUp { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+      .bingo-modal-content h2 {
+        color: #28a745;
+        margin-top: 0;
+        font-size: 28px;
+      }
+      @keyframes popUp {
+        0% {
+          transform: scale(0.7);
+          opacity: 0;
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
       .bingo-history-box {
-        margin: 20px auto; background: #fff; padding: 10px; border-radius: 6px;
-        max-width: 600px; border: 1px solid #ddd; text-align: left;
+        margin: 20px auto;
+        background: #fff;
+        padding: 10px;
+        border-radius: 6px;
+        max-width: 600px;
+        border: 1px solid #ddd;
+        text-align: left;
       }
-      .bingo-log-list { font-size: 14px; color: #666; max-height: 80px; overflow-y: auto; margin: 0; padding-left: 20px; }
+      .bingo-log-list {
+        font-size: 14px;
+        color: #666;
+        max-height: 80px;
+        overflow-y: auto;
+        margin: 0;
+        padding-left: 20px;
+      }
 
       /* ══ マインスイーパー ══ */
       @keyframes timer-pulse {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.05); opacity: .85; }
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.05);
+          opacity: 0.85;
+        }
       }
-      .timer-danger { color: #ef4444 !important; border-color: #f87171 !important; animation: timer-pulse .8s infinite; }
+      .timer-danger {
+        color: #ef4444 !important;
+        border-color: #f87171 !important;
+        animation: timer-pulse 0.8s infinite;
+      }
 
       /* ══ 戻るボタン共通 ══ */
       .back-btn {
-        position: fixed; top: 12px; left: 12px; z-index: 900;
-        background: rgba(255,255,255,.9); border: 2px solid #ccc; border-radius: 8px;
-        padding: 6px 14px; font-size: 14px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 900;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
       }
-      .back-btn:hover { background: #f5f5f5; }
+      .back-btn:hover {
+        background: #f5f5f5;
+      }
     </style>
   </head>
   <body>
-
     <!-- ══════════════════════════════════════════════
          ① ゲーム選択ロビー
     ══════════════════════════════════════════════ -->
     <div id="select-screen" class="screen active">
-      <h1 style="font-size:28px;margin-bottom:4px;">🎮 ゲームロビー</h1>
-      <p style="color:#888;font-size:14px;margin-bottom:20px;">プレイするゲームを選んでください</p>
+      <h1 style="font-size: 28px; margin-bottom: 4px">🎮 ゲームロビー</h1>
+      <p style="color: #888; font-size: 14px; margin-bottom: 20px">
+        プレイするゲームを選んでください
+      </p>
 
       <!-- 文字ポーカー（オンライン） -->
       <div class="game-card" onclick="showPokerLobby()">
         <span class="badge badge-online">🌐 オンライン対戦</span>
         <h3>🃏 文字ポーカー</h3>
-        <p>部屋を作って友達と対戦。日本語・英語の文字カードを使って単語を作り、得点を競います。</p>
+        <p>
+          部屋を作って友達と対戦。日本語・英語の文字カードを使って単語を作り、得点を競います。
+        </p>
       </div>
 
       <!-- しりとりビンゴ（オフライン） -->
-      <div class="game-card" onclick="showScreen('bingo-screen'); bingoInit();">
+      <div
+        class="game-card"
+        onclick="
+          showScreen('bingo-screen');
+          bingoInit();
+        "
+      >
         <span class="badge badge-offline">👥 ローカル対戦</span>
         <h3>🎯 しりとりビンゴ</h3>
-        <p>しりとりで言葉を言いながら自分のビンゴカードをそろえよう。2列でビンゴを達成した人の勝ち！</p>
+        <p>
+          しりとりで言葉を言いながら自分のビンゴカードをそろえよう。2列でビンゴを達成した人の勝ち！
+        </p>
       </div>
 
       <!-- マインスイーパー（オフライン） -->
-      <div class="game-card" onclick="showScreen('mine-screen'); mineInit();">
+      <div
+        class="game-card"
+        onclick="
+          showScreen('mine-screen');
+          mineInit();
+        "
+      >
         <span class="badge badge-offline">👥 ローカル対戦</span>
         <h3>💣 五十音マインスイーパー対戦</h3>
-        <p>五十音表でマインスイーパー！お題のワードに含まれる文字が「爆弾」。先に正解を当てた方の勝ち。</p>
+        <p>
+          五十音表でマインスイーパー！お題のワードに含まれる文字が「爆弾」。先に正解を当てた方の勝ち。
+        </p>
       </div>
 
       <!-- 更新履歴 -->
-      <details style="margin-top:20px;text-align:left;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;color:#555;">
-        <summary style="cursor:pointer;font-weight:bold;color:#333;">📋 更新履歴</summary>
-        <ul style="margin:8px 0 4px;padding-left:20px;line-height:1.8;">
+      <details
+        style="
+          margin-top: 20px;
+          text-align: left;
+          background: #fff;
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 8px 14px;
+          font-size: 13px;
+          color: #555;
+        "
+      >
+        <summary style="cursor: pointer; font-weight: bold; color: #333">
+          📋 更新履歴
+        </summary>
+        <ul style="margin: 8px 0 4px; padding-left: 20px; line-height: 1.8">
           <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
         </ul>
       </details>
@@ -185,66 +460,155 @@
          ② 文字ポーカー
     ══════════════════════════════════════════════ -->
     <div id="poker-screen" class="screen">
-      <button class="back-btn" onclick="showScreen('select-screen'); pokerDestroy();">← ロビーへ</button>
-      <h1 id="poker-page-title" style="font-size:24px;">文字ポーカー ver1.4</h1>
+      <button
+        class="back-btn"
+        onclick="
+          showScreen('select-screen');
+          pokerDestroy();
+        "
+      >
+        ← ロビーへ
+      </button>
+      <h1 id="poker-page-title" style="font-size: 24px">文字ポーカー</h1>
 
       <!-- ロビー -->
       <div id="poker-lobby">
-        <div id="poker-lang-section" style="margin-bottom:14px;">
-          <p style="margin:4px 0;font-size:14px;color:#666">題材を選ぶ（ホストのみ）</p>
-          <button class="lang-btn active" id="btn-ja" onclick="pokerSelectLang('ja')">🇯🇵 日本語</button>
-          <button class="lang-btn" id="btn-en" onclick="pokerSelectLang('en')">🇬🇧 英語</button>
+        <div id="poker-lang-section" style="margin-bottom: 14px">
+          <p style="margin: 4px 0; font-size: 14px; color: #666">
+            題材を選ぶ（ホストのみ）
+          </p>
+          <button
+            class="lang-btn active"
+            id="btn-ja"
+            onclick="pokerSelectLang('ja')"
+          >
+            🇯🇵 日本語
+          </button>
+          <button class="lang-btn" id="btn-en" onclick="pokerSelectLang('en')">
+            🇬🇧 英語
+          </button>
         </div>
-        <input type="text" id="poker-room-input" placeholder="合言葉（例: room123）" style="font-size:16px;padding:8px 12px;border-radius:6px;border:1px solid #aaa;" />
-        <br/><br/>
-        <button onclick="pokerCreateRoom()" class="room-btn room-btn-primary">🏠 部屋を作る（ホスト）</button>
-        <button onclick="pokerJoinRoom()"   class="room-btn room-btn-secondary">🚪 部屋に参加</button>
+        <input
+          type="text"
+          id="poker-room-input"
+          placeholder="合言葉（例: room123）"
+          style="
+            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #aaa;
+          "
+        />
+        <br /><br />
+        <button onclick="pokerCreateRoom()" class="room-btn room-btn-primary">
+          🏠 部屋を作る（ホスト）
+        </button>
+        <button onclick="pokerJoinRoom()" class="room-btn room-btn-secondary">
+          🚪 部屋に参加
+        </button>
         <p id="poker-status"></p>
-        <div id="poker-host-lobby" style="display:none;">
+        <div id="poker-host-lobby" style="display: none">
           <p id="poker-players-label">参加者：</p>
-          <ul id="poker-player-list" style="list-style:none;padding:0;font-size:16px;"></ul>
-          <button onclick="pokerHostStartGame()" class="room-btn room-btn-primary">▶ ゲームを開始する</button>
+          <ul
+            id="poker-player-list"
+            style="list-style: none; padding: 0; font-size: 16px"
+          ></ul>
+          <button
+            onclick="pokerHostStartGame()"
+            class="room-btn room-btn-primary"
+          >
+            ▶ ゲームを開始する
+          </button>
         </div>
-        <p id="poker-waiting-msg" style="display:none;color:#888;">ホストがゲームを開始するまでお待ちください…</p>
+        <p id="poker-waiting-msg" style="display: none; color: #888">
+          ホストがゲームを開始するまでお待ちください…
+        </p>
       </div>
 
       <!-- ゲーム画面 -->
-      <div id="poker-game" style="display:none;">
+      <div id="poker-game" style="display: none">
         <h2><span id="poker-room-id-display"></span></h2>
         <!-- カード交換 -->
         <div id="poker-exchange-section">
           <p id="poker-exchange-hint"></p>
-          <div id="poker-my-hand"></div><br/>
-          <button id="poker-exchange-btn" onclick="pokerExchangeCards()"></button>
-          <p id="poker-exchange-status" style="color:#888;font-size:14px;"></p>
+          <div id="poker-my-hand"></div>
+          <br />
+          <button
+            id="poker-exchange-btn"
+            onclick="pokerExchangeCards()"
+          ></button>
+          <p
+            id="poker-exchange-status"
+            style="color: #888; font-size: 14px"
+          ></p>
         </div>
         <!-- 単語入力 -->
-        <div id="poker-word-section" style="display:none;margin-top:10px;">
-          <p id="poker-word-hint" style="font-size:13px;color:#666;margin:4px 0;"></p>
-          <p style="margin:6px 0;"><strong id="poker-hand-label"></strong></p>
+        <div id="poker-word-section" style="display: none; margin-top: 10px">
+          <p
+            id="poker-word-hint"
+            style="font-size: 13px; color: #666; margin: 4px 0"
+          ></p>
+          <p style="margin: 6px 0"><strong id="poker-hand-label"></strong></p>
           <div id="poker-my-hand-final"></div>
           <div id="poker-word-input-area">
-            <input type="text" id="poker-word-input" onkeydown="if(event.key==='Enter'&&!event.isComposing)pokerSubmitWord();" />
+            <input
+              type="text"
+              id="poker-word-input"
+              onkeydown="
+                if (event.key === 'Enter' && !event.isComposing)
+                  pokerSubmitWord();
+              "
+            />
             <button id="poker-submit-btn" onclick="pokerSubmitWord()"></button>
             <button id="poker-finish-btn" onclick="pokerFinishWords()"></button>
           </div>
-          <p id="poker-loading-msg" style="display:none;font-size:15px;color:#888;">⏳ Checking dictionary…</p>
-          <div id="poker-word-list" style="margin-top:8px;font-size:16px;line-height:1.8;"></div>
+          <p
+            id="poker-loading-msg"
+            style="display: none; font-size: 15px; color: #888"
+          >
+            ⏳ Checking dictionary…
+          </p>
+          <div
+            id="poker-word-list"
+            style="margin-top: 8px; font-size: 16px; line-height: 1.8"
+          ></div>
         </div>
         <!-- 結果 -->
-        <div id="poker-result-section" style="display:none;margin-top:20px;padding:20px;border-radius:12px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:18px;">
-          <h2 id="poker-result-label" style="font-size:28px;margin:0 0 10px;"></h2>
+        <div
+          id="poker-result-section"
+          style="
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            font-size: 18px;
+          "
+        >
+          <h2
+            id="poker-result-label"
+            style="font-size: 28px; margin: 0 0 10px"
+          ></h2>
           <table id="poker-ranking">
-            <thead><tr>
-              <th id="poker-col-name"></th>
-              <th id="poker-col-words"></th>
-              <th id="poker-col-score"></th>
-            </tr></thead>
+            <thead>
+              <tr>
+                <th id="poker-col-name"></th>
+                <th id="poker-col-words"></th>
+                <th id="poker-col-score"></th>
+              </tr>
+            </thead>
             <tbody id="poker-ranking-body"></tbody>
           </table>
-          <div id="poker-rematch-area" style="margin-top:16px;">
-            <button id="poker-rematch-btn" onclick="pokerRequestRematch()"></button>
-            <p id="poker-rematch-status" style="font-size:15px;color:#888;margin-top:8px;"></p>
+          <div id="poker-rematch-area" style="margin-top: 16px">
+            <button
+              id="poker-rematch-btn"
+              onclick="pokerRequestRematch()"
+            ></button>
+            <p
+              id="poker-rematch-status"
+              style="font-size: 15px; color: #888; margin-top: 8px"
+            ></p>
           </div>
         </div>
       </div>
@@ -254,35 +618,77 @@
          ③ しりとりビンゴ
     ══════════════════════════════════════════════ -->
     <div id="bingo-screen" class="screen">
-      <button class="back-btn" onclick="showScreen('select-screen');">← ロビーへ</button>
-      <h1 style="color:#333;font-size:26px;">5×5 しりとりビンゴ</h1>
+      <button class="back-btn" onclick="showScreen('select-screen')">
+        ← ロビーへ
+      </button>
+      <h1 style="color: #333; font-size: 26px">5×5 しりとりビンゴ</h1>
 
-      <div style="margin-bottom:20px;">
+      <div style="margin-bottom: 20px">
         <label for="bingo-playerCount">人数：</label>
-        <select id="bingo-playerCount" onchange="bingoUpdateNameInputs()" style="font-size:16px;padding:6px 10px;">
+        <select
+          id="bingo-playerCount"
+          onchange="bingoUpdateNameInputs()"
+          style="font-size: 16px; padding: 6px 10px"
+        >
           <option value="2">2人</option>
           <option value="3" selected>3人</option>
           <option value="4">4人</option>
         </select>
-        <button onclick="bingoGenerateBoards()" style="font-size:16px;padding:8px 12px;cursor:pointer;margin:5px;">カードを新しく配り直す</button>
+        <button
+          onclick="bingoGenerateBoards()"
+          style="
+            font-size: 16px;
+            padding: 8px 12px;
+            cursor: pointer;
+            margin: 5px;
+          "
+        >
+          カードを新しく配り直す
+        </button>
       </div>
-      <div id="bingo-nameInputsContainer" class="name-inputs" style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;"></div>
-      <div id="bingo-turnIndicator" class="bingo-turn-indicator">現在の番：-</div>
+      <div
+        id="bingo-nameInputsContainer"
+        class="name-inputs"
+        style="
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 10px;
+        "
+      ></div>
+      <div id="bingo-turnIndicator" class="bingo-turn-indicator">
+        現在の番：-
+      </div>
 
-      <div style="margin-bottom:20px;">
+      <div style="margin-bottom: 20px">
         <form id="bingo-wordForm" onsubmit="bingoSubmitWord(event)">
           <label for="bingo-wordInput">言葉を入力：</label>
-          <input type="text" id="bingo-wordInput" placeholder="例: りんご" autocomplete="off" required
-            style="font-size:16px;padding:8px 12px;" />
-          <button type="submit" style="font-size:16px;padding:8px 12px;cursor:pointer;">送信・決定</button>
+          <input
+            type="text"
+            id="bingo-wordInput"
+            placeholder="例: りんご"
+            autocomplete="off"
+            required
+            style="font-size: 16px; padding: 8px 12px"
+          />
+          <button
+            type="submit"
+            style="font-size: 16px; padding: 8px 12px; cursor: pointer"
+          >
+            送信・決定
+          </button>
         </form>
-        <div id="bingo-errorMsg" style="color:#dc3545;font-weight:bold;margin-top:5px;"></div>
+        <div
+          id="bingo-errorMsg"
+          style="color: #dc3545; font-weight: bold; margin-top: 5px"
+        ></div>
       </div>
 
       <div id="bingo-boards" class="bingo-boards-container"></div>
 
       <div class="bingo-history-box">
-        <h4 style="margin:0 0 5px;color:#555;">これまでのワード履歴：</h4>
+        <h4 style="margin: 0 0 5px; color: #555">これまでのワード履歴：</h4>
         <ul id="bingo-historyList" class="bingo-log-list"></ul>
       </div>
 
@@ -290,9 +696,22 @@
       <div id="bingo-winModal" class="bingo-modal">
         <div class="bingo-modal-content">
           <h2>🎉 BINGO! 🎉</h2>
-          <p id="bingo-winnerText">プレイヤー名 が 2列ビンゴを達成して勝利しました！</p>
-          <button onclick="bingoCloseModal()"
-            style="margin-top:15px;background:#007bff;color:white;border:none;padding:10px 20px;border-radius:5px;font-size:16px;cursor:pointer;">
+          <p id="bingo-winnerText">
+            プレイヤー名 が 2列ビンゴを達成して勝利しました！
+          </p>
+          <button
+            onclick="bingoCloseModal()"
+            style="
+              margin-top: 15px;
+              background: #007bff;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 5px;
+              font-size: 16px;
+              cursor: pointer;
+            "
+          >
             閉じる
           </button>
         </div>
@@ -303,94 +722,225 @@
          ④ 五十音マインスイーパー対戦
     ══════════════════════════════════════════════ -->
     <div id="mine-screen" class="screen">
-      <button class="back-btn" onclick="showScreen('select-screen'); mineStopTimer();">← ロビーへ</button>
+      <button
+        class="back-btn"
+        onclick="
+          showScreen('select-screen');
+          mineStopTimer();
+        "
+      >
+        ← ロビーへ
+      </button>
 
-      <header style="text-align:center;margin-bottom:8px;">
-        <h1 class="text-2xl sm:text-3xl font-black text-indigo-700 tracking-wider">五十音表マインスイーパー対戦</h1>
-        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">2人対戦パズル（ワード構造推理 ＆ マス開け）</p>
+      <header style="text-align: center; margin-bottom: 8px">
+        <h1
+          class="text-2xl sm:text-3xl font-black text-indigo-700 tracking-wider"
+        >
+          五十音表マインスイーパー対戦
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+          2人対戦パズル（ワード構造推理 ＆ マス開け）
+        </p>
       </header>
 
       <!-- プレイヤー名設定 -->
-      <div class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-slate-200 flex flex-col gap-2" style="margin:0 auto 12px;">
-        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">👤 プレイヤー名設定</div>
+      <div
+        class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-slate-200 flex flex-col gap-2"
+        style="margin: 0 auto 12px"
+      >
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          👤 プレイヤー名設定
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-indigo-700 whitespace-nowrap">P1:</span>
-            <input type="text" id="mine-p1-name-input" value="プレイヤー1"
-              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <button onclick="mineUpdatePlayerName(1)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap">変更</button>
+            <span class="text-xs font-bold text-indigo-700 whitespace-nowrap"
+              >P1:</span
+            >
+            <input
+              type="text"
+              id="mine-p1-name-input"
+              value="プレイヤー1"
+              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onclick="mineUpdatePlayerName(1)"
+              class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap"
+            >
+              変更
+            </button>
           </div>
           <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-slate-700 whitespace-nowrap">P2:</span>
-            <input type="text" id="mine-p2-name-input" value="プレイヤー2"
-              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-            <button onclick="mineUpdatePlayerName(2)" class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap">変更</button>
+            <span class="text-xs font-bold text-slate-700 whitespace-nowrap"
+              >P2:</span
+            >
+            <input
+              type="text"
+              id="mine-p2-name-input"
+              value="プレイヤー2"
+              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button
+              onclick="mineUpdatePlayerName(2)"
+              class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap"
+            >
+              変更
+            </button>
           </div>
         </div>
       </div>
 
       <!-- ゲーム情報カード -->
-      <div class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 border border-slate-200 flex flex-col gap-2.5" style="margin:0 auto 12px;">
-        <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2.5">
+      <div
+        class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-3 sm:mb-4 border border-slate-200 flex flex-col gap-2.5"
+        style="margin: 0 auto 12px"
+      >
+        <div
+          class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 pb-2.5"
+        >
           <div>
-            <span id="mine-genre-badge" class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-bold mb-1">ジャンル: 読み込み中...</span>
-            <div class="text-xs sm:text-sm font-bold text-slate-700">文字数: <span id="mine-target-length" class="text-indigo-600 font-black">--</span> 文字</div>
+            <span
+              id="mine-genre-badge"
+              class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2.5 py-1 rounded-full font-bold mb-1"
+              >ジャンル: 読み込み中...</span
+            >
+            <div class="text-xs sm:text-sm font-bold text-slate-700">
+              文字数:
+              <span id="mine-target-length" class="text-indigo-600 font-black"
+                >--</span
+              >
+              文字
+            </div>
           </div>
           <div class="flex items-center gap-2">
-            <div id="mine-timer-box" class="bg-slate-900 text-amber-400 font-mono text-sm sm:text-base font-black px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 shadow-inner transition-all">
+            <div
+              id="mine-timer-box"
+              class="bg-slate-900 text-amber-400 font-mono text-sm sm:text-base font-black px-3 py-1.5 rounded-xl border border-slate-700 flex items-center gap-1.5 shadow-inner transition-all"
+            >
               <span>⏱️</span>
               <span id="mine-timer-display">03:00</span>
             </div>
-            <div id="mine-status-turn" class="bg-amber-100 border border-amber-300 text-amber-900 px-3 sm:px-4 py-1.5 rounded-xl text-center font-bold text-xs sm:text-sm shadow-sm whitespace-nowrap">
+            <div
+              id="mine-status-turn"
+              class="bg-amber-100 border border-amber-300 text-amber-900 px-3 sm:px-4 py-1.5 rounded-xl text-center font-bold text-xs sm:text-sm shadow-sm whitespace-nowrap"
+            >
               プレイヤー1のターン
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <input type="file" id="mine-csv-file-input" accept=".csv" class="hidden" onchange="mineHandleCSVFileSelect(event)">
-            <button onclick="document.getElementById('mine-csv-file-input').click()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 whitespace-nowrap">
+            <input
+              type="file"
+              id="mine-csv-file-input"
+              accept=".csv"
+              class="hidden"
+              onchange="mineHandleCSVFileSelect(event)"
+            />
+            <button
+              onclick="document.getElementById('mine-csv-file-input').click()"
+              class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 whitespace-nowrap"
+            >
               📁 CSV指定
             </button>
-            <button onclick="mineInitGame()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap">問題変更</button>
+            <button
+              onclick="mineInitGame()"
+              class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold transition whitespace-nowrap"
+            >
+              問題変更
+            </button>
           </div>
         </div>
 
         <!-- お題構造ヒント -->
-        <div id="mine-word-structure-panel" class="bg-slate-800 text-white rounded-xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-inner">
-          <div class="flex items-center justify-between w-full text-[11px] sm:text-xs text-slate-400 font-bold px-1">
+        <div
+          id="mine-word-structure-panel"
+          class="bg-slate-800 text-white rounded-xl p-2.5 flex flex-col items-center justify-center gap-1 shadow-inner"
+        >
+          <div
+            class="flex items-center justify-between w-full text-[11px] sm:text-xs text-slate-400 font-bold px-1"
+          >
             <span>💡 お題の文字構造ヒント</span>
-            <span id="mine-hint-status-label" class="text-slate-400">爆弾マスを開けるとヒントで位置を特定可能</span>
+            <span id="mine-hint-status-label" class="text-slate-400"
+              >爆弾マスを開けるとヒントで位置を特定可能</span
+            >
           </div>
-          <div id="mine-word-slots" class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 my-0.5"></div>
+          <div
+            id="mine-word-slots"
+            class="flex flex-wrap items-center justify-center gap-1 sm:gap-1.5 my-0.5"
+          ></div>
         </div>
 
         <!-- 操作パネル -->
-        <div id="mine-action-panel" class="bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2 h-24 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm shrink-0 overflow-hidden">
-          <div id="mine-action-prompt" class="font-bold text-indigo-950 text-xs sm:text-sm text-center sm:text-left flex items-center gap-1.5 w-full sm:w-auto flex-1"></div>
-          <div id="mine-action-controls" class="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end shrink-0"></div>
+        <div
+          id="mine-action-panel"
+          class="bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2 h-24 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm shrink-0 overflow-hidden"
+        >
+          <div
+            id="mine-action-prompt"
+            class="font-bold text-indigo-950 text-xs sm:text-sm text-center sm:text-left flex items-center gap-1.5 w-full sm:w-auto flex-1"
+          ></div>
+          <div
+            id="mine-action-controls"
+            class="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end shrink-0"
+          ></div>
         </div>
       </div>
 
       <!-- ボード -->
-      <div class="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-3 sm:p-5 border border-slate-200 flex flex-col items-center" style="margin:0 auto 12px;">
-        <div id="mine-board" class="grid grid-cols-10 gap-1 sm:gap-1.5 w-full select-none"></div>
-        <div class="w-full grid grid-cols-2 gap-3 sm:gap-4 mt-4 pt-3 border-t border-slate-200 text-center text-xs sm:text-sm font-bold">
-          <div id="mine-p1-box" class="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col items-center justify-between gap-1.5">
+      <div
+        class="w-full max-w-2xl bg-white shadow-xl rounded-2xl p-3 sm:p-5 border border-slate-200 flex flex-col items-center"
+        style="margin: 0 auto 12px"
+      >
+        <div
+          id="mine-board"
+          class="grid grid-cols-10 gap-1 sm:gap-1.5 w-full select-none"
+        ></div>
+        <div
+          class="w-full grid grid-cols-2 gap-3 sm:gap-4 mt-4 pt-3 border-t border-slate-200 text-center text-xs sm:text-sm font-bold"
+        >
+          <div
+            id="mine-p1-box"
+            class="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col items-center justify-between gap-1.5"
+          >
             <div>
-              <span id="mine-p1-display-name" class="text-sm sm:text-base font-black">プレイヤー1</span>
-              <span id="mine-p1-status" class="block text-[10px] sm:text-xs font-normal text-slate-500">通常</span>
+              <span
+                id="mine-p1-display-name"
+                class="text-sm sm:text-base font-black"
+                >プレイヤー1</span
+              >
+              <span
+                id="mine-p1-status"
+                class="block text-[10px] sm:text-xs font-normal text-slate-500"
+                >通常</span
+              >
             </div>
-            <button id="mine-p1-hint-btn" onclick="mineTriggerPlayerHint(1)"
-              class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+            <button
+              id="mine-p1-hint-btn"
+              onclick="mineTriggerPlayerHint(1)"
+              class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               💡 位置ヒント (残り1回)
             </button>
           </div>
-          <div id="mine-p2-box" class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-70">
+          <div
+            id="mine-p2-box"
+            class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-70"
+          >
             <div>
-              <span id="mine-p2-display-name" class="text-sm sm:text-base font-black">プレイヤー2</span>
-              <span id="mine-p2-status" class="block text-[10px] sm:text-xs font-normal text-slate-500">通常</span>
+              <span
+                id="mine-p2-display-name"
+                class="text-sm sm:text-base font-black"
+                >プレイヤー2</span
+              >
+              <span
+                id="mine-p2-status"
+                class="block text-[10px] sm:text-xs font-normal text-slate-500"
+                >通常</span
+              >
             </div>
-            <button id="mine-p2-hint-btn" onclick="mineTriggerPlayerHint(2)"
-              class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+            <button
+              id="mine-p2-hint-btn"
+              onclick="mineTriggerPlayerHint(2)"
+              class="w-full bg-amber-500 hover:bg-amber-600 text-white text-xs py-1.5 rounded-lg font-bold transition shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            >
               💡 位置ヒント (残り1回)
             </button>
           </div>
@@ -398,19 +948,46 @@
       </div>
 
       <!-- ログ -->
-      <div class="w-full max-w-2xl bg-white shadow-md rounded-xl p-3 sm:p-4 mt-3 sm:mt-4 border border-slate-200" style="margin:0 auto;">
-        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">ゲームログ</h4>
-        <div id="mine-log-box" class="h-20 sm:h-24 overflow-y-auto text-xs text-slate-600 space-y-1 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100">
+      <div
+        class="w-full max-w-2xl bg-white shadow-md rounded-xl p-3 sm:p-4 mt-3 sm:mt-4 border border-slate-200"
+        style="margin: 0 auto"
+      >
+        <h4
+          class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1"
+        >
+          ゲームログ
+        </h4>
+        <div
+          id="mine-log-box"
+          class="h-20 sm:h-24 overflow-y-auto text-xs text-slate-600 space-y-1 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100"
+        >
           <div>ゲームが開始されました。</div>
         </div>
       </div>
 
       <!-- 結果モーダル -->
-      <div id="mine-result-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full text-center shadow-2xl">
-          <h2 id="mine-result-title" class="text-2xl font-black text-indigo-600 mb-2">勝負あり！</h2>
-          <p id="mine-result-message" class="text-slate-600 text-sm mb-6">正解です！</p>
-          <button onclick="mineInitGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition">もう一度プレイする</button>
+      <div
+        id="mine-result-modal"
+        class="fixed inset-0 bg-black/50 flex items-center justify-center hidden z-50 p-4"
+      >
+        <div
+          class="bg-white rounded-2xl p-6 max-w-md w-full text-center shadow-2xl"
+        >
+          <h2
+            id="mine-result-title"
+            class="text-2xl font-black text-indigo-600 mb-2"
+          >
+            勝負あり！
+          </h2>
+          <p id="mine-result-message" class="text-slate-600 text-sm mb-6">
+            正解です！
+          </p>
+          <button
+            onclick="mineInitGame()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition"
+          >
+            もう一度プレイする
+          </button>
         </div>
       </div>
     </div>
@@ -419,10 +996,12 @@
          JavaScript
     ══════════════════════════════════════════════ -->
     <script>
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
+      function showScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+      }
     </script>
     <script src="poker.js?v=202610121739"></script>
     <script src="bingo.js?v=202610121739"></script>
