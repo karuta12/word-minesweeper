@@ -1043,6 +1043,24 @@
           background: #e9ecef;
           color: #212529;
         }
+        /* 五十音ラベルを薄く */
+        .mojipit-cell.empty::after {
+          content: attr(data-label);
+          font-size: 11px;
+          color: #ccc;
+          position: absolute;
+          bottom: 3px;
+          right: 4px;
+        }
+        .mojipit-cell {
+          position: relative;
+        }
+        /* 使用済み文字 */
+        .mojipit-kana-btn.used {
+          background: #e9ecef;
+          color: #aaa;
+          text-decoration: line-through;
+        }
         .mojipit-palette {
           display: flex;
           flex-wrap: wrap;
@@ -1234,11 +1252,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610122139"></script>
-    <script src="poker.js?v=202610122139"></script>
-    <script src="bingo.js?v=202610122139"></script>
-    <script src="mine.js?v=202610122139"></script>
-    <script src="mojipittan.js?v=202610122139"></script>
+    <script src="lobby.js?v=202610122144"></script>
+    <script src="poker.js?v=202610122144"></script>
+    <script src="bingo.js?v=202610122144"></script>
+    <script src="mine.js?v=202610122144"></script>
+    <script src="mojipittan.js?v=202610122144"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();

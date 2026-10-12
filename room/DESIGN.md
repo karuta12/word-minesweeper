@@ -330,6 +330,87 @@ mineRevealNeighbors(char)
 
 ---
 
+## 逆もじぴったん (mojipittan.js)
+
+### ゲーム概要
+
+5×5 の五十音表グリッドに2人で交互に文字を1つずつ置いていく。  
+指摘（相手の作った文字列が単語ではないと主張）で点数を稼ぎ、25マス埋まった時点で得点が多い方が勝ち。
+
+### グリッドレイアウト
+
+五十音表の見た目に合わせた配置（右上が「あ」、縦にあいうえお）。  
+実際に置く文字はプレイヤーが自由に選ぶ（固定ではない）。
+
+```
+な た さ か あ   (row=0 / あ段)
+に ち し き い   (row=1 / い段)
+ぬ つ す く う   (row=2 / う段)
+ね て せ け え   (row=3 / え段)
+の と そ こ お   (row=4 / お段)
+```
+
+- `index = row * 5 + col`（左→右、上→下）
+- 空きマスの右下にラベルを薄く表示
+
+### ターンの流れ
+
+```
+自分のターン開始
+  ├── [任意・繰り返し可] 指摘
+  │     ├── 成功（単語ではなかった）→ 文字数ポイント獲得 → また指摘可
+  │     └── 失敗（単語だった）      → 以降このゲーム中は指摘権なし
+  └── 空きマスに文字を1つ置く → 相手のターンへ
+```
+
+### マス選択の制約
+
+| 状況 | 選択可能なマス |
+|------|--------------|
+| グリッドが空（1手目） | 全25マス |
+| 1文字以上置かれた後 | 既置文字の上下左右隣接の空きマスのみ（斜め不可） |
+
+### 文字使用の制約
+
+- パレットは清音46文字＋「ー」の47文字（濁点・半濁点・小文字は各自でつけ外し）
+- **既にグリッドに置かれている文字は選択不可**（パレットで取り消し線付きdisabled表示）
+
+### 指摘の仕組み
+
+1. 「👆 指摘する」ボタンを押して指摘モードへ
+2. 指摘したい文字列をテキスト入力（例: 「りんご」）
+3. weblioリンクが入力に連動して更新 → 両者が辞書を確認
+4. **自己申告**で「成功」か「失敗」を押す
+
+weblioリンク: `https://www.weblio.jp/content/` + encodeURIComponent(入力文字列)
+
+### 得点
+
+- 指摘成功時の文字列の文字数分のみ加算
+- 最終スコア = 指摘成功の累計点
+- 25マス全て埋まったら終了・集計
+
+### 2人専用
+
+`lobbySelectGame` で2人以外はアラートを出して開始不可。
+
+### 主要メッセージ
+
+| type | 方向 | 内容 |
+|------|------|------|
+| `GAME_SELECTED` | ホスト→ゲスト | `{ game: "mojipittan", myIndex: 1, names }` |
+| `MOJIPIT_PLACE` | 双方向 | `{ index, char }` マスに文字を置く |
+| `MOJIPIT_ACCUSE` | 双方向 | `{ result: "success"\|"fail", word, len, playerIndex }` 指摘結果 |
+
+ホスト側で `MOJIPIT_PLACE` 受信時に以下を検証して不正操作を弾く：
+- 送信者のターンか
+- 対象マスが空か
+- 文字がパレットにある清音か
+- 既にグリッドに存在する文字でないか
+- 隣接制約を満たしているか
+
+---
+
 ## 初期化順序
 
 ```html
@@ -337,10 +418,11 @@ mineRevealNeighbors(char)
 <script>
   function showScreen(id) { ... }
 </script>
-<script src="lobby.js?v=..."></script>   <!-- lobbyXxx 関数を定義 -->
-<script src="poker.js?v=..."></script>   <!-- pokerXxx 関数を定義 -->
-<script src="bingo.js?v=..."></script>   <!-- bingoXxx 関数を定義 -->
-<script src="mine.js?v=..."></script>    <!-- mineXxx 関数を定義 -->
+<script src="lobby.js?v=..."></script>        <!-- lobbyXxx 関数を定義 -->
+<script src="poker.js?v=..."></script>         <!-- pokerXxx 関数を定義 -->
+<script src="bingo.js?v=..."></script>         <!-- bingoXxx 関数を定義 -->
+<script src="mine.js?v=..."></script>          <!-- mineXxx 関数を定義 -->
+<script src="mojipittan.js?v=..."></script>    <!-- mojipXxx 関数を定義 -->
 <script>
   mineInit();       // 問題DBをfetchで初期化
   // bingo.js の ?v= からビルド番号を取得してロビー画面に表示
