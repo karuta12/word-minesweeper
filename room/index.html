@@ -450,62 +450,8 @@
       </button>
       <h1 id="poker-page-title" style="font-size: 24px">文字ポーカー</h1>
 
-      <!-- ロビー -->
-      <div id="poker-lobby">
-        <div id="poker-lang-section" style="margin-bottom: 14px">
-          <p style="margin: 4px 0; font-size: 14px; color: #666">
-            題材を選ぶ（ホストのみ）
-          </p>
-          <button
-            class="lang-btn active"
-            id="btn-ja"
-            onclick="pokerSelectLang('ja')"
-          >
-            🇯🇵 日本語
-          </button>
-          <button class="lang-btn" id="btn-en" onclick="pokerSelectLang('en')">
-            🇬🇧 英語
-          </button>
-        </div>
-        <input
-          type="text"
-          id="poker-room-input"
-          placeholder="合言葉（例: room123）"
-          style="
-            font-size: 16px;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #aaa;
-          "
-        />
-        <br /><br />
-        <button onclick="pokerCreateRoom()" class="room-btn room-btn-primary">
-          🏠 部屋を作る（ホスト）
-        </button>
-        <button onclick="pokerJoinRoom()" class="room-btn room-btn-secondary">
-          🚪 部屋に参加
-        </button>
-        <p id="poker-status"></p>
-        <div id="poker-host-lobby" style="display: none">
-          <p id="poker-players-label">参加者：</p>
-          <ul
-            id="poker-player-list"
-            style="list-style: none; padding: 0; font-size: 16px"
-          ></ul>
-          <button
-            onclick="pokerHostStartGame()"
-            class="room-btn room-btn-primary"
-          >
-            ▶ ゲームを開始する
-          </button>
-        </div>
-        <p id="poker-waiting-msg" style="display: none; color: #888">
-          ホストがゲームを開始するまでお待ちください…
-        </p>
-      </div>
-
       <!-- ゲーム画面 -->
-      <div id="poker-game" style="display: none">
+      <div id="poker-game">
         <h2><span id="poker-room-id-display"></span></h2>
         <!-- カード交換 -->
         <div id="poker-exchange-section">
