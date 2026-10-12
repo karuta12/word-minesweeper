@@ -522,6 +522,7 @@
           <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
         </ul>
       </details>
+      <p id="lobby-version-display" style="margin-top:10px;font-size:11px;color:#bbb;text-align:right;"></p>
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -666,7 +667,8 @@
           />
           <button
             type="submit"
-            style="font-size: 16px; padding: 8px 12px; cursor: pointer"
+            class="room-btn room-btn-primary"
+            style="font-size: 16px; padding: 8px 16px;"
           >
             送信・決定
           </button>
@@ -734,52 +736,6 @@
           2人対戦パズル（ワード構造推理 ＆ マス開け）
         </p>
       </header>
-
-      <!-- プレイヤー名設定 -->
-      <div
-        class="w-full max-w-2xl bg-white shadow-md rounded-2xl p-3 sm:p-4 mb-2 sm:mb-3 border border-slate-200 flex flex-col gap-2"
-        style="margin: 0 auto 12px"
-      >
-        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          👤 プレイヤー名設定
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-indigo-700 whitespace-nowrap"
-              >P1:</span
-            >
-            <input
-              type="text"
-              id="mine-p1-name-input"
-              value="プレイヤー1"
-              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              onclick="mineUpdatePlayerName(1)"
-              class="bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap"
-            >
-              変更
-            </button>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs font-bold text-slate-700 whitespace-nowrap"
-              >P2:</span
-            >
-            <input
-              type="text"
-              id="mine-p2-name-input"
-              value="プレイヤー2"
-              class="w-full px-2.5 py-1 border border-slate-300 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              onclick="mineUpdatePlayerName(2)"
-              class="bg-slate-700 hover:bg-slate-800 text-white px-2.5 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap"
-            >
-              変更
-            </button>
-          </div>
-        </div>
-      </div>
 
       <!-- ゲーム情報カード -->
       <div
@@ -995,13 +951,24 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610121909"></script>
-    <script src="poker.js?v=202610121909"></script>
-    <script src="bingo.js?v=202610121909"></script>
-    <script src="mine.js?v=202610121909"></script>
+    <script src="lobby.js?v=202610121914"></script>
+    <script src="poker.js?v=202610121914"></script>
+    <script src="bingo.js?v=202610121914"></script>
+    <script src="mine.js?v=202610121914"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();
+      // スクリプトタグからバージョン番号を取得して表示
+      (function() {
+        const s = document.querySelector('script[src*="bingo.js"]');
+        if (s) {
+          const m = s.src.match(/\?v=(\d+)/);
+          if (m) {
+            const el = document.getElementById('lobby-version-display');
+            if (el) el.innerText = `build: ${m[1]}`;
+          }
+        }
+      })();
     </script>
   </body>
 </html>

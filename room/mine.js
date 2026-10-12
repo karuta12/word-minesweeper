@@ -750,14 +750,4 @@ function mineInitGame() {
   });
   mineHostStart(names, q, cells);
 }
-// mine.js の末尾などに追加
-function mineUpdatePlayerName(num) {
-  const input = document.getElementById(`mine-p${num}-name-input`);
-  const display = document.getElementById(`mine-p${num}-display-name`);
-  if (input && display) {
-    minePlayerNames[num] = input.value.trim() || `プレイヤー${num}`;
-    display.textContent = minePlayerNames[num];
-    mineAddLog(`P${num}の名前が「${minePlayerNames[num]}」に変更されました。`);
-    mineUpdateUI();
-  }
-}
+
