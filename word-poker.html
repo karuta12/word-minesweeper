@@ -29,18 +29,9 @@
         user-select: none;
         transition: transform 0.15s;
       }
-      .black {
-        color: #333;
-        border: 2px solid #333;
-      }
-      .blue {
-        color: #0066cc;
-        border: 2px solid #0066cc;
-      }
-      .red {
-        color: #cc0000;
-        border: 2px solid #cc0000;
-      }
+      .black { color: #333;    border: 2px solid #333; }
+      .blue  { color: #0066cc; border: 2px solid #0066cc; }
+      .red   { color: #cc0000; border: 2px solid #cc0000; }
       .selected {
         transform: translateY(-10px);
         background: #fff3cd;
@@ -56,47 +47,41 @@
         cursor: pointer;
         margin: 5px;
       }
-      #game-screen {
-        display: none;
-      }
-      #word-section {
-        display: none;
-        margin-top: 10px;
-        /* 画面下部の固定バーの分だけ余白 */
-        padding-bottom: 110px;
-      }
-      #word-list {
-        margin-top: 10px;
-        font-size: 16px;
-        line-height: 1.8;
-      }
-      /* 入力欄を画面下部に固定 */
-      #word-input-bar {
-        display: none;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
+      #game-screen { display: none; }
+
+      /* ── 単語入力フェーズ ── */
+      #word-section { display: none; margin-top: 10px; }
+
+      #word-input-area {
+        margin: 10px 0;
+        padding: 10px;
         background: #fff;
-        border-top: 2px solid #ccc;
-        padding: 10px 12px;
-        box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
-        z-index: 100;
+        border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        display: inline-block;
       }
-      #word-input-bar input {
-        font-size: 20px;
+      #word-input-area input {
+        font-size: 22px;
         padding: 6px 10px;
-        width: calc(100% - 200px);
-        max-width: 300px;
+        width: 180px;
         text-align: center;
         border: 2px solid #aaa;
         border-radius: 6px;
+        vertical-align: middle;
       }
-      #word-input-bar button {
+      #word-input-area button {
         font-size: 16px;
         padding: 8px 14px;
-        margin-left: 4px;
+        vertical-align: middle;
       }
+
+      #word-list {
+        margin-top: 8px;
+        font-size: 16px;
+        line-height: 1.8;
+      }
+
+      /* ── 結果表示フェーズ ── */
       #result-section {
         display: none;
         margin-top: 20px;
@@ -113,6 +98,9 @@
       .win  { color: #cc0000; }
       .lose { color: #0066cc; }
       .draw { color: #666; }
+
+      #rematch-area { margin-top: 16px; }
+      #rematch-status { font-size: 15px; color: #888; margin-top: 8px; }
     </style>
   </head>
   <body>
@@ -145,21 +133,21 @@
 
       <!-- 単語入力フェーズ -->
       <div id="word-section">
-        <p style="font-size:14px; color:#555; margin-bottom:4px;">
-          手札の文字を使って単語を入力してください。<br>
-          同じ文字を複数回使う場合は手札に複数枚必要です。
+        <p style="font-size:13px; color:#666; margin:4px 0;">
+          手札の文字を使って単語を入力 / 同じ文字を複数回使う場合は複数枚必要
         </p>
-        <p>あなたの手札</p>
+        <p style="margin:6px 0;"><strong>あなたの手札</strong></p>
         <div id="my-hand-final"></div>
-        <div id="word-list"></div>
-      </div>
 
-      <!-- 単語入力バー（画面下部固定） -->
-      <div id="word-input-bar">
-        <input type="text" id="word-input" placeholder="単語を入力"
-               onkeydown="if(event.key==='Enter') submitWord()" />
-        <button onclick="submitWord()">確定</button>
-        <button id="finish-btn" onclick="finishWords()">終了→結果へ</button>
+        <!-- 入力欄：手札のすぐ下 -->
+        <div id="word-input-area">
+          <input type="text" id="word-input" placeholder="単語を入力"
+                 onkeydown="if(event.key==='Enter') submitWord()" />
+          <button onclick="submitWord()">確定</button>
+          <button id="finish-btn" onclick="finishWords()">終了→結果へ</button>
+        </div>
+
+        <div id="word-list"></div>
       </div>
 
       <!-- 結果表示フェーズ -->
@@ -172,30 +160,36 @@
         <p id="opp-score-detail" style="font-size:15px; color:#555;"></p>
         <p><strong id="opp-total-score" style="font-size:22px;"></strong></p>
         <h2 id="result-label"></h2>
+        <div id="rematch-area">
+          <button onclick="requestRematch()">🔄 再戦する</button>
+          <p id="rematch-status"></p>
+        </div>
       </div>
     </div>
 
     <script>
       // ── 文字リスト（レアリティ別） ──────────────────────────────
       const rawList = [
-        "の","に","た","い","は","を","と","る","が","し","で","て","な","か","れ", // 1-15: 黒1点×3
+        "の","に","た","い","は","を","と","る","が","し","で","て","な","か","れ",
         "ら","も","う","す","り","こ","だ","ま","さ","き","め","く","あ","け","ど",
-        "ん","え","よ","つ","や", // 16-35: 青2点×2
+        "ん","え","よ","つ","や",
         "そ","わ","ち","み","せ","ろ","ば","お","じ","べ","ず","げ","ほ","へ","び",
         "む","ご","ね","ぶ","ぐ","ぎ","ひ","づ","ぼ","ざ","ふ","ぞ","ゆ","ぜ","ぬ",
-        "ぱ","ぴ","ぽ","ぷ","ぺ","ぢ","ー", // 36-: 赤3点×1
+        "ぱ","ぴ","ぽ","ぷ","ぺ","ぢ","ー",
       ];
 
       let deck = [];
       let myHand = [];
       let hasExchanged = false;
       let opponentExchanged = false;
-      let myWords = [];       // { word, score } の配列
+      let myWords = [];
       let myTotalScore = 0;
       let opponentFinished = false;
       let opponentScore = null;
       let opponentDetail = null;
       let iFinished = false;
+      let iWantRematch = false;
+      let opponentWantsRematch = false;
       let peer, conn;
       let isHost = false;
 
@@ -212,6 +206,36 @@
         deck.sort(() => Math.random() - 0.5);
       }
 
+      // ── ゲーム状態リセット ───────────────────────────────────────
+      function resetGame() {
+        deck = [];
+        myHand = [];
+        hasExchanged = false;
+        opponentExchanged = false;
+        myWords = [];
+        myTotalScore = 0;
+        opponentFinished = false;
+        opponentScore = null;
+        opponentDetail = null;
+        iFinished = false;
+        iWantRematch = false;
+        opponentWantsRematch = false;
+
+        // UI リセット
+        document.getElementById("result-section").style.display = "none";
+        document.getElementById("word-section").style.display = "none";
+        document.getElementById("exchange-section").style.display = "block";
+        document.getElementById("exchange-btn").disabled = false;
+        document.getElementById("opponent-status").innerText = "相手の選択を待っています...";
+        document.getElementById("word-list").innerHTML = "";
+        document.getElementById("word-input").value = "";
+        document.getElementById("word-input").disabled = false;
+        document.getElementById("finish-btn").disabled = false;
+        document.getElementById("rematch-status").innerText = "";
+        document.getElementById("my-hand").innerHTML = "";
+        document.getElementById("my-hand-final").innerHTML = "";
+      }
+
       // ── 部屋作成（ホスト） ──────────────────────────────────────
       function createRoom() {
         const roomName = document.getElementById("room-input").value.trim();
@@ -226,7 +250,6 @@
         peer.on("connection", (c) => {
           conn = c;
           setupConnection();
-          // ゲスト側の conn.on("open") を待ってからデータ送信
           conn.on("open", () => {
             showGame(roomName);
             startGameAsHost();
@@ -261,7 +284,6 @@
       function setupConnection() {
         conn.on("data", (data) => {
           if (data.type === "HAND") {
-            // ゲスト：手札を受け取って表示
             myHand = data.hand;
             renderHand();
           } else if (data.type === "EXCHANGE_DONE") {
@@ -270,12 +292,20 @@
               "相手はカード交換を終えました ✅";
             checkBothExchanged();
           } else if (data.type === "SCORE") {
-            // 相手の得点を受け取った
             opponentScore  = data.total;
             opponentDetail = data.detail;
             opponentFinished = true;
             checkBothFinished();
+          } else if (data.type === "REMATCH_REQUEST") {
+            opponentWantsRematch = true;
+            checkBothRematch();
+          } else if (data.type === "REMATCH_START") {
+            // ホストから再戦開始の合図（手札付き）
+            resetGame();
+            myHand = data.hand;
+            renderHand();
           }
+          // ※ resetGame() 後に exchange-section は block に戻るので追加不要
         });
       }
 
@@ -285,7 +315,6 @@
         const guestHand = deck.splice(0, 7);
         myHand = deck.splice(0, 7);
         renderHand();
-        // ゲストに手札を送信
         conn.send({ type: "HAND", hand: guestHand });
       }
 
@@ -303,7 +332,7 @@
         });
       }
 
-      // ── 手札表示（単語入力フェーズ：残り枚数を反映） ─────────────
+      // ── 手札表示（単語入力フェーズ） ────────────────────────────
       function renderHandFinal() {
         const container = document.getElementById("my-hand-final");
         container.innerHTML = "";
@@ -328,10 +357,6 @@
           if (!confirm("1枚も交換しませんか？")) return;
         }
 
-        // ホストは自分のデッキから補充、ゲストは使えるデッキがないため
-        // 簡易実装：ホストはデッキから、ゲストはホストが持つデッキ情報を利用
-        // → ここでは両プレイヤーとも initDeck と同じシャッフル済み残余デッキを参照せず
-        //    ランダム補充（実用上は問題なし）
         indicesToReplace.forEach((index) => {
           myHand[index] = drawRandom();
         });
@@ -345,7 +370,6 @@
 
       // ── ランダムに1枚引く（レアリティ加重） ─────────────────────
       function drawRandom() {
-        // rawListから加重ランダム
         const pool = [];
         rawList.forEach((char, index) => {
           let count, color, score;
@@ -362,8 +386,9 @@
         if (!hasExchanged || !opponentExchanged) return;
         document.getElementById("exchange-section").style.display = "none";
         document.getElementById("word-section").style.display = "block";
-        document.getElementById("word-input-bar").style.display = "block";
         renderHandFinal();
+        // 入力欄にフォーカス
+        document.getElementById("word-input").focus();
       }
 
       // ── 単語確定 ─────────────────────────────────────────────────
@@ -373,19 +398,14 @@
         if (!word) return;
         input.value = "";
 
-        // 手札から使える文字をチェック
-        const handCopy = myHand.map(c => ({ ...c })); // コピーで試行
+        const handCopy = myHand.map(c => ({ ...c }));
         let score = 0;
         let valid = true;
         const usedIndices = [];
 
         for (const ch of word) {
-          // 未使用のカードから該当文字を探す
-          const idx = handCopy.findIndex(c => c.char === ch && !c._tmpUsed);
-          if (idx === -1) {
-            valid = false;
-            break;
-          }
+          const idx = handCopy.findIndex(c => c.char === ch && !c._tmpUsed && !c.used);
+          if (idx === -1) { valid = false; break; }
           handCopy[idx]._tmpUsed = true;
           score += handCopy[idx].score;
           usedIndices.push(idx);
@@ -393,22 +413,21 @@
 
         if (!valid) {
           alert(`「${word}」は手札にない文字が含まれています。`);
+          input.focus();
           return;
         }
 
-        // 実際に手札を消費
         usedIndices.forEach(i => { myHand[i].used = true; });
         myTotalScore += score;
         myWords.push({ word, score });
 
         renderHandFinal();
         updateWordList();
+        input.focus();
 
-        // 全カード使用済みなら自動終了
         const remaining = myHand.filter(c => !c.used);
         if (remaining.length === 0) {
           alert("手札をすべて使いました！");
-          document.getElementById("word-input-bar").style.display = "none";
           finishWords();
         }
       }
@@ -423,10 +442,12 @@
 
       // ── 単語入力終了→得点送信 ────────────────────────────────────
       function finishWords() {
+        if (iFinished) return;
         iFinished = true;
-        document.getElementById("word-input-bar").style.display = "none";
+        document.getElementById("word-input").disabled = true;
+        document.getElementById("finish-btn").disabled = true;
 
-        const detail = myWords.map(w => `${w.word}(${w.score}点)`).join("、");
+        const detail = myWords.map(w => `${w.word}(${w.score}点)`).join("、") || "単語なし";
         conn.send({ type: "SCORE", total: myTotalScore, detail });
         checkBothFinished();
       }
@@ -441,7 +462,6 @@
         const myDetail = myWords.map(w => `${w.word}(${w.score}点)`).join("、") || "単語なし";
         document.getElementById("my-score-detail").innerText = myDetail;
         document.getElementById("my-total-score").innerText = `合計 ${myTotalScore} 点`;
-
         document.getElementById("opp-score-detail").innerText = opponentDetail || "単語なし";
         document.getElementById("opp-total-score").innerText = `合計 ${opponentScore} 点`;
 
@@ -456,6 +476,36 @@
           label.textContent = "🤝 引き分け！";
           label.className = "draw";
         }
+      }
+
+      // ── 再戦リクエスト ───────────────────────────────────────────
+      function requestRematch() {
+        iWantRematch = true;
+        document.querySelector("#rematch-area button").disabled = true;
+        document.getElementById("rematch-status").innerText = "再戦リクエストを送りました。相手を待っています...";
+        conn.send({ type: "REMATCH_REQUEST" });
+        checkBothRematch();
+      }
+
+      // ── 双方が再戦を希望したらゲームを再開 ──────────────────────
+      function checkBothRematch() {
+        if (!iWantRematch || !opponentWantsRematch) {
+          if (opponentWantsRematch && !iWantRematch) {
+            document.getElementById("rematch-status").innerText = "相手が再戦を希望しています！";
+          }
+          return;
+        }
+        // 両方揃った
+        if (isHost) {
+          // ホスト：新しいデッキで手札を配り、ゲストに REMATCH_START を送る
+          resetGame();
+          initDeck();
+          const guestHand = deck.splice(0, 7);
+          myHand = deck.splice(0, 7);
+          renderHand();
+          conn.send({ type: "REMATCH_START", hand: guestHand });
+        }
+        // ゲストは REMATCH_START 受信時に resetGame するので何もしない
       }
     </script>
   </body>
