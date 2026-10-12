@@ -385,72 +385,50 @@
       }
     </style>
   </head>
-  <body>
     <!-- ══════════════════════════════════════════════
-         ① ゲーム選択ロビー
+         ① 共通ロビー
     ══════════════════════════════════════════════ -->
-    <div id="select-screen" class="screen active">
-      <h1 style="font-size: 28px; margin-bottom: 4px">🎮 ゲームロビー</h1>
-      <p style="color: #888; font-size: 14px; margin-bottom: 20px">
-        プレイするゲームを選んでください
+    <div id="lobby-screen" class="screen active" style="max-width:540px;margin:0 auto;">
+      <h1 style="font-size:28px;margin-bottom:4px;">🎮 ゲームロビー</h1>
+      <p style="color:#888;font-size:14px;margin-bottom:20px;">合言葉で部屋を作って全員で遊ぼう！</p>
+
+      <input type="text" id="lobby-room-input" placeholder="合言葉（例: room123）"
+        style="font-size:16px;padding:8px 14px;border-radius:8px;border:1px solid #aaa;width:220px;" /><br/><br/>
+      <button onclick="lobbyCreateRoom()" class="room-btn room-btn-primary">🏠 部屋を作る（ホスト）</button>
+      <button onclick="lobbyJoinRoom()"   class="room-btn room-btn-secondary">🚪 部屋に参加</button>
+      <p id="lobby-status" style="color:#555;margin:10px 0;font-size:14px;"></p>
+
+      <!-- ホスト用 -->
+      <div id="host-lobby" style="display:none;margin-top:10px;">
+        <p style="font-weight:bold;margin-bottom:6px;">参加者：</p>
+        <ul id="lobby-player-list" style="list-style:none;padding:0;font-size:16px;margin-bottom:16px;"></ul>
+
+        <!-- ゲーム選択 -->
+        <p style="font-weight:bold;font-size:15px;margin-bottom:8px;">▶ 遊ぶゲームを選んでください：</p>
+
+        <!-- ポーカー用言語選択 -->
+        <div id="lobby-lang-section" style="margin-bottom:12px;font-size:13px;color:#666;">
+          文字ポーカーの言語：
+          <button class="lang-btn active" id="lobby-btn-ja" onclick="lobbySelectLang('ja')">🇯🇵 日本語</button>
+          <button class="lang-btn" id="lobby-btn-en" onclick="lobbySelectLang('en')">🇬🇧 英語</button>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;">
+          <button onclick="lobbySelectGame('poker')" class="room-btn room-btn-primary" style="font-size:18px;padding:16px 28px;">🃏 文字ポーカー</button>
+          <button onclick="lobbySelectGame('bingo')" class="room-btn room-btn-primary" style="font-size:18px;padding:16px 28px;background:#28a745;">🎯 しりとりビンゴ</button>
+          <button onclick="lobbySelectGame('mine')"  class="room-btn room-btn-primary" style="font-size:18px;padding:16px 28px;background:#dc3545;">💣 マインスイーパー</button>
+        </div>
+      </div>
+
+      <!-- ゲスト用 -->
+      <p id="lobby-waiting-msg" style="display:none;color:#888;margin-top:16px;font-size:15px;">
+        ⏳ ホストがゲームを選択するまでお待ちください…
       </p>
 
-      <!-- 文字ポーカー（オンライン） -->
-      <div class="game-card" onclick="showPokerLobby()">
-        <span class="badge badge-online">🌐 オンライン対戦</span>
-        <h3>🃏 文字ポーカー</h3>
-        <p>
-          部屋を作って友達と対戦。日本語・英語の文字カードを使って単語を作り、得点を競います。
-        </p>
-      </div>
-
-      <!-- しりとりビンゴ（オフライン） -->
-      <div
-        class="game-card"
-        onclick="
-          showScreen('bingo-screen');
-          bingoInit();
-        "
-      >
-        <span class="badge badge-offline">👥 ローカル対戦</span>
-        <h3>🎯 しりとりビンゴ</h3>
-        <p>
-          しりとりで言葉を言いながら自分のビンゴカードをそろえよう。2列でビンゴを達成した人の勝ち！
-        </p>
-      </div>
-
-      <!-- マインスイーパー（オフライン） -->
-      <div
-        class="game-card"
-        onclick="
-          showScreen('mine-screen');
-          mineInit();
-        "
-      >
-        <span class="badge badge-offline">👥 ローカル対戦</span>
-        <h3>💣 五十音マインスイーパー対戦</h3>
-        <p>
-          五十音表でマインスイーパー！お題のワードに含まれる文字が「爆弾」。先に正解を当てた方の勝ち。
-        </p>
-      </div>
-
       <!-- 更新履歴 -->
-      <details
-        style="
-          margin-top: 20px;
-          text-align: left;
-          background: #fff;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          padding: 8px 14px;
-          font-size: 13px;
-          color: #555;
-        "
-      >
-        <summary style="cursor: pointer; font-weight: bold; color: #333">
-          📋 更新履歴
-        </summary>
-        <ul style="margin: 8px 0 4px; padding-left: 20px; line-height: 1.8">
+      <details style="margin-top:28px;text-align:left;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;color:#555;">
+        <summary style="cursor:pointer;font-weight:bold;color:#333;">📋 更新履歴</summary>
+        <ul style="margin:8px 0 4px;padding-left:20px;line-height:1.8;">
           <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
         </ul>
       </details>
