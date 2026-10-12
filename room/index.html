@@ -529,7 +529,15 @@
           <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
         </ul>
       </details>
-      <p id="lobby-version-display" style="margin-top:10px;font-size:11px;color:#bbb;text-align:right;"></p>
+      <p
+        id="lobby-version-display"
+        style="
+          margin-top: 10px;
+          font-size: 11px;
+          color: #bbb;
+          text-align: right;
+        "
+      ></p>
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -675,7 +683,7 @@
           <button
             type="submit"
             class="room-btn room-btn-primary"
-            style="font-size: 16px; padding: 8px 16px;"
+            style="font-size: 16px; padding: 8px 16px"
           >
             送信・決定
           </button>
@@ -1021,7 +1029,9 @@
           border-radius: 8px;
           border: 2px solid #dee2e6;
           background: #f8f9fa;
-          transition: background 0.15s, border-color 0.15s;
+          transition:
+            background 0.15s,
+            border-color 0.15s;
         }
         .mojipit-cell.empty {
           background: #fff;
@@ -1037,7 +1047,7 @@
         .mojipit-cell.selected {
           background: #cfe2ff;
           border-color: #0d6efd;
-          box-shadow: 0 0 0 3px rgba(13,110,253,0.3);
+          box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.3);
         }
         .mojipit-cell.filled {
           background: #e9ecef;
@@ -1123,7 +1133,7 @@
           display: none;
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.5);
+          background: rgba(0, 0, 0, 0.5);
           z-index: 1000;
           align-items: center;
           justify-content: center;
@@ -1133,7 +1143,7 @@
           border-radius: 14px;
           padding: 32px 40px;
           text-align: center;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
         }
         .mojipit-modal-content h2 {
           font-size: 26px;
@@ -1147,9 +1157,13 @@
         }
       </style>
 
-      <button class="back-btn" onclick="showScreen('lobby-screen')">← ロビーへ</button>
-      <h1 style="font-size:24px;margin-bottom:4px;">🔤 逆もじぴったん</h1>
-      <p style="font-size:13px;color:#888;margin:0 0 10px;">5×5マスに交互に文字を置き、指摘で点数を稼ごう</p>
+      <button class="back-btn" onclick="showScreen('lobby-screen')">
+        ← ロビーへ
+      </button>
+      <h1 style="font-size: 24px; margin-bottom: 4px">🔤 逆もじぴったん</h1>
+      <p style="font-size: 13px; color: #888; margin: 0 0 10px">
+        5×5マスに交互に文字を置き、指摘で点数を稼ごう
+      </p>
 
       <!-- ステータス -->
       <div id="mojipit-status" class="mojipit-status"></div>
@@ -1160,13 +1174,17 @@
           <div class="mojipit-player-name" id="mojipit-name-0">P1</div>
           <div class="mojipit-score" id="mojipit-score-0">0</div>
           <div>点</div>
-          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-0">指摘可</span>
+          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-0"
+            >指摘可</span
+          >
         </div>
         <div class="mojipit-player-box" id="mojipit-player-box-1">
           <div class="mojipit-player-name" id="mojipit-name-1">P2</div>
           <div class="mojipit-score" id="mojipit-score-1">0</div>
           <div>点</div>
-          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-1">指摘可</span>
+          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-1"
+            >指摘可</span
+          >
         </div>
       </div>
 
@@ -1174,36 +1192,74 @@
       <div id="mojipit-grid" class="mojipit-grid"></div>
 
       <!-- 文字を置くヒント -->
-      <p id="mojipit-place-hint" class="mojipit-place-hint" style="display:none;">
+      <p
+        id="mojipit-place-hint"
+        class="mojipit-place-hint"
+        style="display: none"
+      >
         👆 マスを選んでから、下の文字ボタンを押して置いてください
       </p>
 
       <!-- 指摘ボタン -->
-      <div style="text-align:center;margin:8px 0;">
-        <button id="mojipit-accuse-btn" class="room-btn room-btn-primary"
-          style="background:#ffc107;color:#333;display:none;"
-          onclick="mojipStartAccuse()">
+      <div style="text-align: center; margin: 8px 0">
+        <button
+          id="mojipit-accuse-btn"
+          class="room-btn room-btn-primary"
+          style="background: #ffc107; color: #333; display: none"
+          onclick="mojipStartAccuse()"
+        >
           👆 指摘する
         </button>
       </div>
 
       <!-- 指摘エリア -->
-      <div id="mojipit-accuse-area" class="mojipit-accuse-area" style="display:none;">
+      <div
+        id="mojipit-accuse-area"
+        class="mojipit-accuse-area"
+        style="display: none"
+      >
         <label>
           指摘する単語を入力：
-          <a id="mojipit-weblio-link" href="https://www.weblio.jp/" target="_blank" class="mojipit-weblio-link">📖 weblio で確認</a>
+          <a
+            id="mojipit-weblio-link"
+            href="https://www.weblio.jp/"
+            target="_blank"
+            class="mojipit-weblio-link"
+            >📖 weblio で確認</a
+          >
         </label>
-        <input type="text" id="mojipit-accuse-input" placeholder="例: りんご"
+        <input
+          type="text"
+          id="mojipit-accuse-input"
+          placeholder="例: りんご"
           autocomplete="off"
           oninput="mojipUpdateWeblioLink()"
-          onkeydown="if(event.key==='Enter'){}"/>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="room-btn room-btn-primary" style="background:#28a745;"
-            onclick="mojipJudgeAccuse(true)">✅ 成功（単語ではなかった）</button>
-          <button class="room-btn room-btn-primary" style="background:#dc3545;"
-            onclick="mojipJudgeAccuse(false)">❌ 失敗（単語だった）</button>
-          <button class="room-btn room-btn-secondary"
-            onclick="mojipCancelAccuse()">戻る</button>
+          onkeydown="
+            if (event.key === 'Enter') {
+            }
+          "
+        />
+        <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap">
+          <button
+            class="room-btn room-btn-primary"
+            style="background: #28a745"
+            onclick="mojipJudgeAccuse(true)"
+          >
+            ✅ 成功（単語ではなかった）
+          </button>
+          <button
+            class="room-btn room-btn-primary"
+            style="background: #dc3545"
+            onclick="mojipJudgeAccuse(false)"
+          >
+            ❌ 失敗（単語だった）
+          </button>
+          <button
+            class="room-btn room-btn-secondary"
+            onclick="mojipCancelAccuse()"
+          >
+            戻る
+          </button>
         </div>
       </div>
 
@@ -1212,7 +1268,7 @@
 
       <!-- ログ -->
       <div class="mojipit-log-box">
-        <strong style="font-size:13px;color:#555;">📋 ログ</strong>
+        <strong style="font-size: 13px; color: #555">📋 ログ</strong>
         <ul id="mojipit-log"></ul>
       </div>
 
@@ -1220,8 +1276,16 @@
       <div id="mojipit-result-modal" class="mojipit-modal">
         <div class="mojipit-modal-content">
           <h2>🎉 ゲーム終了！</h2>
-          <p id="mojipit-result-text" style="font-size:18px;margin:10px 0 20px;"></p>
-          <button class="room-btn room-btn-primary" onclick="mojipCloseResult()">閉じる</button>
+          <p
+            id="mojipit-result-text"
+            style="font-size: 18px; margin: 10px 0 20px"
+          ></p>
+          <button
+            class="room-btn room-btn-primary"
+            onclick="mojipCloseResult()"
+          >
+            閉じる
+          </button>
         </div>
       </div>
     </div>
@@ -1237,21 +1301,21 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610122156"></script>
-    <script src="poker.js?v=202610122156"></script>
-    <script src="bingo.js?v=202610122156"></script>
-    <script src="mine.js?v=202610122156"></script>
-    <script src="mojipittan.js?v=202610122156"></script>
+    <script src="lobby.js?v=202610122332"></script>
+    <script src="poker.js?v=202610122332"></script>
+    <script src="bingo.js?v=202610122332"></script>
+    <script src="mine.js?v=202610122332"></script>
+    <script src="mojipittan.js?v=202610122332"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();
       // スクリプトタグからバージョン番号を取得して表示
-      (function() {
+      (function () {
         const s = document.querySelector('script[src*="bingo.js"]');
         if (s) {
           const m = s.src.match(/\?v=(\d+)/);
           if (m) {
-            const el = document.getElementById('lobby-version-display');
+            const el = document.getElementById("lobby-version-display");
             if (el) el.innerText = `build: ${m[1]}`;
           }
         }
