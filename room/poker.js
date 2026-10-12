@@ -81,7 +81,7 @@ const POKER_LANG_DATA = {
     blueEnd: 35,
     checkWord: null,
     ui: {
-      title: "文字ポーカー ver1.4",
+      title: "文字ポーカー",
       roomLabel: (r) => `対戦ルーム: ${r}`,
       exchangeHint: "あなたの手札（クリックで選択して交換）",
       exchangeBtn: "選択したカードを交換する（1回のみ）",
@@ -153,7 +153,7 @@ const POKER_LANG_DATA = {
       }
     },
     ui: {
-      title: "文字ポーカー ver1.4",
+      title: "文字ポーカー",
       roomLabel: (r) => `対戦ルーム: ${r}`,
       exchangeHint: "あなたの手札（クリックで選択して交換）",
       exchangeBtn: "選択したカードを交換する（1回のみ）",
