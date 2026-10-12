@@ -53,6 +53,16 @@
       }
       .lang-btn.active { border-color: #0066cc; background: #e8f0fe; }
 
+      .room-btn {
+        font-size: 16px; padding: 12px 28px; border-radius: 10px;
+        border: none; cursor: pointer; margin: 6px; font-weight: bold;
+        transition: opacity .15s, transform .1s;
+      }
+      .room-btn:hover { opacity: .85; transform: translateY(-1px); }
+      .room-btn:active { transform: translateY(0); }
+      .room-btn-primary   { background: #0066cc; color: #fff; }
+      .room-btn-secondary { background: #555; color: #fff; }
+
       #poker-word-input-area {
         margin: 10px 0; padding: 10px; background: #fff; border-radius: 8px;
         box-shadow: 0 1px 4px rgba(0,0,0,.12); display: inline-block;
@@ -161,6 +171,14 @@
         <h3>💣 五十音マインスイーパー対戦</h3>
         <p>五十音表でマインスイーパー！お題のワードに含まれる文字が「爆弾」。先に正解を当てた方の勝ち。</p>
       </div>
+
+      <!-- 更新履歴 -->
+      <details style="margin-top:20px;text-align:left;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;color:#555;">
+        <summary style="cursor:pointer;font-weight:bold;color:#333;">📋 更新履歴</summary>
+        <ul style="margin:8px 0 4px;padding-left:20px;line-height:1.8;">
+          <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
+        </ul>
+      </details>
     </div>
 
     <!-- ══════════════════════════════════════════════
@@ -169,14 +187,6 @@
     <div id="poker-screen" class="screen">
       <button class="back-btn" onclick="showScreen('select-screen'); pokerDestroy();">← ロビーへ</button>
       <h1 id="poker-page-title" style="font-size:24px;">文字ポーカー ver1.4</h1>
-
-      <!-- 更新履歴 -->
-      <details style="max-width:480px;margin:0 auto 16px;text-align:left;background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;color:#555;">
-        <summary style="cursor:pointer;font-weight:bold;color:#333;">📋 更新履歴</summary>
-        <ul style="margin:8px 0 4px;padding-left:20px;line-height:1.8;">
-          <li><strong>ver1.4</strong> — 各ゲームへのリンクを追加</li>
-        </ul>
-      </details>
 
       <!-- ロビー -->
       <div id="poker-lobby">
@@ -187,13 +197,13 @@
         </div>
         <input type="text" id="poker-room-input" placeholder="合言葉（例: room123）" style="font-size:16px;padding:8px 12px;border-radius:6px;border:1px solid #aaa;" />
         <br/><br/>
-        <button onclick="pokerCreateRoom()" style="padding:10px 20px;font-size:16px;cursor:pointer;margin:4px;">部屋を作る（ホスト）</button>
-        <button onclick="pokerJoinRoom()"   style="padding:10px 20px;font-size:16px;cursor:pointer;margin:4px;">部屋に参加</button>
+        <button onclick="pokerCreateRoom()" class="room-btn room-btn-primary">🏠 部屋を作る（ホスト）</button>
+        <button onclick="pokerJoinRoom()"   class="room-btn room-btn-secondary">🚪 部屋に参加</button>
         <p id="poker-status"></p>
         <div id="poker-host-lobby" style="display:none;">
           <p id="poker-players-label">参加者：</p>
           <ul id="poker-player-list" style="list-style:none;padding:0;font-size:16px;"></ul>
-          <button onclick="pokerHostStartGame()" style="padding:10px 20px;font-size:16px;cursor:pointer;">▶ ゲームを開始する</button>
+          <button onclick="pokerHostStartGame()" class="room-btn room-btn-primary">▶ ゲームを開始する</button>
         </div>
         <p id="poker-waiting-msg" style="display:none;color:#888;">ホストがゲームを開始するまでお待ちください…</p>
       </div>
