@@ -4,7 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>5×5 しりとりビンゴ（ビンゴ・リーチ数表示）</title>
+
+    <title>5×5 しりとりビンゴ（頻度バランス配分版）</title>
     <style>
       body {
         font-family: sans-serif;
@@ -216,9 +217,9 @@
     <div class="setup">
       <label for="playerCount">人数：</label>
       <select id="playerCount" onchange="updateNameInputs()">
-        <option value="2">2人（文字被りなし）</option>
-        <option value="3" selected>3人（文字被りなし）</option>
-        <option value="4">4人（一部被りあり）</option>
+        <option value="2">2人</option>
+        <option value="3" selected>3人</option>
+        <option value="4">4人</option>
       </select>
       <button onclick="generateBoards()">カードを新しく配り直す</button>
     </div>
@@ -274,79 +275,80 @@
     </div>
 
     <script>
-      const fullChars = [
-        "あ",
-        "い",
-        "う",
-        "え",
-        "お",
-        "か",
-        "き",
-        "く",
-        "け",
-        "こ",
-        "さ",
-        "し",
-        "す",
-        "せ",
-        "そ",
-        "た",
-        "ち",
-        "つ",
-        "て",
-        "と",
-        "な",
-        "に",
-        "ぬ",
-        "ね",
+      // ご提示いただいた出現頻度の高い順に並べた文字リスト
+      const frequencySortedChars = [
         "の",
+        "に",
+        "た",
+        "い",
         "は",
-        "ひ",
-        "ふ",
-        "へ",
-        "ほ",
-        "ま",
-        "み",
-        "む",
-        "め",
-        "も",
-        "や",
-        "ゆ",
-        "よ",
-        "ら",
-        "り",
-        "る",
-        "れ",
-        "ろ",
-        "わ",
         "を",
-        "ん",
-        "ー",
+        "と",
+        "る",
         "が",
-        "ぎ",
-        "ぐ",
-        "げ",
-        "ご",
-        "ざ",
-        "じ",
-        "ず",
-        "ぜ",
-        "ぞ",
-        "だ",
-        "ぢ",
-        "づ",
+        "し",
         "で",
+        "て",
+        "な",
+        "か",
+        "れ",
+        "ら",
+        "も",
+        "う",
+        "す",
+        "り",
+        "こ",
+        "だ",
+        "ま",
+        "さ",
+        "き",
+        "め",
+        "く",
+        "あ",
+        "け",
         "ど",
+        "ん",
+        "え",
+        "よ",
+        "つ",
+        "や",
+        "そ",
+        "わ",
+        "ち",
+        "み",
+        "せ",
+        "ろ",
         "ば",
-        "び",
-        "ぶ",
+        "お",
+        "じ",
         "べ",
+        "ず",
+        "げ",
+        "ほ",
+        "へ",
+        "び",
+        "む",
+        "ご",
+        "ね",
+        "ぶ",
+        "ぐ",
+        "ぎ",
+        "ひ",
+        "づ",
         "ぼ",
+        "ざ",
+        "ふ",
+        "ぞ",
+        "ゆ",
+        "ぜ",
+        "ぬ",
         "ぱ",
         "ぴ",
+        "ぽ",
         "ぷ",
         "ぺ",
-        "ぽ",
+        "ぢ",
+        "ー",
       ];
 
       let wordHistory = [];
@@ -428,34 +430,36 @@
         document.getElementById("historyList").innerHTML = "";
         document.getElementById("errorMsg").innerText = "";
 
-        let pool = shuffle(fullChars.filter((char) => char !== "り"));
-        let playerCharLists = [];
+        // 「り」を除外したリストを作成（頻度順を維持）
+        let charsWithoutRi = frequencySortedChars.filter(
+          (char) => char !== "り",
+        );
 
-        if (count === 3) {
-          let p1 = pool.slice(0, 24);
-          let p2 = pool.slice(24, 48);
-          let p3 = pool.slice(48, 71);
-          p3.push(pool[Math.floor(Math.random() * pool.length)]);
-          playerCharLists = [p1, p2, p3];
-        } else if (count === 2) {
-          let p1 = pool.slice(0, 24);
-          let p2 = pool.slice(24, 48);
-          playerCharLists = [p1, p2];
-        } else {
-          for (let p = 0; p < count; p++) {
-            let playerChars = [];
-            for (let i = 0; i < 24; i++) {
-              let poolIndex = (p * 24 + i) % pool.length;
-              if (poolIndex === 0 && i > 0) pool = shuffle(pool);
-              playerChars.push(pool[poolIndex]);
-            }
-            playerCharLists.push(playerChars);
+        // スネークドラフト方式で各プレイヤーに文字を配分する
+        // 例）3人の場合: P0,P1,P2,P2,P1,P0,P0,P1,P2,...
+        // これにより各プレイヤーが頻度の高い文字・低い文字を均等に受け取る
+        let playerCharLists = Array.from({ length: count }, () => []);
+        let forward = true;
+        let p = 0;
+        for (let i = 0; i < charsWithoutRi.length; i++) {
+          playerCharLists[p].push(charsWithoutRi[i]);
+          if (forward) {
+            p++;
+            if (p >= count) { p = count - 1; forward = false; }
+          } else {
+            p--;
+            if (p < 0) { p = 0; forward = true; }
           }
         }
 
+        // 各プレイヤーのリストから24文字をシャッフルして選ぶ
         for (let p = 0; p < count; p++) {
-          let cardChars = shuffle(playerCharLists[p]);
-          cardChars.splice(12, 0, "り"); // 中央（12番目）に「り」
+          playerCharLists[p] = shuffle(playerCharLists[p]).slice(0, 24);
+        }
+
+        for (let p = 0; p < count; p++) {
+          let cardChars = playerCharLists[p];
+          cardChars.splice(12, 0, "り"); // 中央（12番目）に「り」を配置
 
           const cardDiv = document.createElement("div");
           cardDiv.className = "player-card";
@@ -500,7 +504,6 @@
         updateCardStatus();
       }
 
-      // 各カードのビンゴ数とリーチ数を計算する関数
       function evaluateCard(cardElement) {
         const cells = cardElement.querySelectorAll(".cell");
         let grid = [];
@@ -512,9 +515,7 @@
           grid.push(row);
         }
 
-        // チェックする全12ライン（横5、縦5、斜め2）の定義
         let lines = [];
-        // 横
         for (let r = 0; r < 5; r++) {
           lines.push([
             grid[r][0],
@@ -524,7 +525,6 @@
             grid[r][4],
           ]);
         }
-        // 縦
         for (let c = 0; c < 5; c++) {
           lines.push([
             grid[0][c],
@@ -534,7 +534,6 @@
             grid[4][c],
           ]);
         }
-        // 斜め
         lines.push([
           grid[0][0],
           grid[1][1],
@@ -565,7 +564,6 @@
         return { bingos, reaches };
       }
 
-      // 全プレイヤーのステータス（ビンゴ・リーチ）を更新し、2列で勝利判定
       function updateCardStatus() {
         const cards = document.querySelectorAll(".player-card");
         cards.forEach((card, idx) => {
@@ -577,7 +575,6 @@
           if (reachBadge) reachBadge.innerText = `リーチ: ${status.reaches}`;
           if (bingoBadge) bingoBadge.innerText = `ビンゴ: ${status.bingos}列`;
 
-          // 2列ビンゴ以上を達成したら勝利
           if (status.bingos >= 2 && !gameFinished) {
             triggerWinModal(playerNames[idx]);
           }
@@ -603,7 +600,7 @@
           ぃ: "い",
           ぅ: "う",
           ぇ: "え",
-          ぉ: "あと",
+          ぉ: "お",
           っ: "つ",
           ゃ: "や",
           ゅ: "ゆ",
@@ -653,7 +650,6 @@
           });
         });
 
-        // ビンゴ数とリーチ数を再計算
         updateCardStatus();
 
         const speakerName = playerNames[currentTurnIndex];
@@ -668,7 +664,6 @@
         inputField.focus();
 
         if (!gameFinished) {
-          currentTrustIndex = (currentTurnIndex + 1) % playerNames.length;
           currentTurnIndex = (currentTurnIndex + 1) % playerNames.length;
           updateTurnDisplay();
         }
