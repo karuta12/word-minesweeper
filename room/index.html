@@ -460,6 +460,7 @@
           <br />
           <button
             id="poker-exchange-btn"
+            class="room-btn room-btn-primary"
             onclick="pokerExchangeCards()"
           ></button>
           <p
@@ -484,8 +485,8 @@
                   pokerSubmitWord();
               "
             />
-            <button id="poker-submit-btn" onclick="pokerSubmitWord()"></button>
-            <button id="poker-finish-btn" onclick="pokerFinishWords()"></button>
+            <button id="poker-submit-btn" class="room-btn room-btn-primary" onclick="pokerSubmitWord()"></button>
+            <button id="poker-finish-btn" class="room-btn room-btn-secondary" onclick="pokerFinishWords()"></button>
           </div>
           <p
             id="poker-loading-msg"
@@ -528,6 +529,7 @@
           <div id="poker-rematch-area" style="margin-top: 16px">
             <button
               id="poker-rematch-btn"
+              class="room-btn room-btn-primary"
               onclick="pokerRequestRematch()"
             ></button>
             <p
@@ -560,7 +562,7 @@
           <option value="4">4人</option>
         </select>
       </div>
-      <div id="bingo-turnIndicator" class="bingo-turn-indicator">
+      <div id="bingo-turnIndicator" class="bingo-turn-indicator"></div>
 
       <div style="margin-bottom: 20px">
         <form id="bingo-wordForm" onsubmit="bingoSubmitWord(event)">
