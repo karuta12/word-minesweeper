@@ -32,17 +32,17 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 // 清音のみ（濁点・半濁点・小文字は各自でつけ外し）
+// 五十音表と同じ縦並び・右からあ行（グリッドと対応）
+// 表示は10列×5行で右列があ行、末尾にん・ーを追加
 const MOJIPIT_KANA = [
-  "あ","い","う","え","お",
-  "か","き","く","け","こ",
-  "さ","し","す","せ","そ",
-  "た","ち","つ","て","と",
-  "な","に","ぬ","ね","の",
-  "は","ひ","ふ","へ","ほ",
-  "ま","み","む","め","も",
-  "や","ゆ","よ",
-  "ら","り","る","れ","ろ",
-  "わ","を","ん","ー",
+  // わ行  ら行  や行  ま行  は行  な行  た行  さ行  か行  あ行
+  "わ",  "ら",  "や",  "ま",  "は",  "な",  "た",  "さ",  "か",  "あ",
+  "ゐ",  "り",  "ゆ",  "み",  "ひ",  "に",  "ち",  "し",  "き",  "い",
+  "　",  "る",  "よ",  "む",  "ふ",  "ぬ",  "つ",  "す",  "く",  "う",
+  "ゑ",  "れ",  "　",  "め",  "へ",  "ね",  "て",  "せ",  "け",  "え",
+  "を",  "ろ",  "　",  "も",  "ほ",  "の",  "と",  "そ",  "こ",  "お",
+  // 追加行
+  "ん",  "ー",  "　",  "　",  "　",  "　",  "　",  "　",  "　",  "　",
 ];
 
 // 五十音表レイアウト（5×5、右上があ）
@@ -55,13 +55,6 @@ const MOJIPIT_KANA = [
 //  ね て せ け え   (row=3)
 //  の と そ こ お   (row=4)
 //
-const MOJIPIT_GRID_LABELS = [
-  "な","た","さ","か","あ",
-  "に","ち","し","き","い",
-  "ぬ","つ","す","く","う",
-  "ね","て","せ","け","え",
-  "の","と","そ","こ","お",
-];
 
 // ── 状態変数 ──
 let mojipGrid        = Array(25).fill(null); // null or ひらがな1文字
@@ -150,9 +143,6 @@ function mojipRender() {
     const cell = document.createElement("div");
     cell.className = "mojipit-cell";
 
-    // 五十音ラベルを薄く表示（背景）
-    cell.dataset.label = MOJIPIT_GRID_LABELS[idx];
-
     if (ch) {
       cell.textContent = ch;
       cell.classList.add("filled");
@@ -202,15 +192,22 @@ function mojipRenderPalette() {
   palette.innerHTML = "";
   MOJIPIT_KANA.forEach(ch => {
     const btn = document.createElement("button");
+    // 空白・旧仮名（ゐゑ）は空セルとして表示するだけ
+    const isBlank = (ch === "　" || ch === "ゐ" || ch === "ゑ");
     btn.className = "mojipit-kana-btn";
-    btn.textContent = ch;
+    btn.textContent = isBlank ? "" : ch;
 
-    const alreadyUsed = usedChars.has(ch);
-    if (isMyTurn && cellSelected && !alreadyUsed) {
-      btn.onclick = () => mojipPlaceChar(ch);
-    } else {
+    if (isBlank) {
       btn.disabled = true;
-      if (alreadyUsed) btn.classList.add("used");
+      btn.style.visibility = "hidden";
+    } else {
+      const alreadyUsed = usedChars.has(ch);
+      if (isMyTurn && cellSelected && !alreadyUsed) {
+        btn.onclick = () => mojipPlaceChar(ch);
+      } else {
+        btn.disabled = true;
+        if (alreadyUsed) btn.classList.add("used");
+      }
     }
     palette.appendChild(btn);
   });
