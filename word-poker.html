@@ -200,20 +200,20 @@
       <!-- 言語選択（ホストのみ選べる、ゲストはホストに合わせる） -->
       <div id="lang-section">
         <p style="margin: 4px 0; font-size: 14px; color: #666">
-          言語を選ぶ / Choose language (Host only)
+          題材を選ぶ（ホストのみ）
         </p>
         <button class="lang-btn active" id="btn-ja" onclick="selectLang('ja')">
           🇯🇵 日本語
         </button>
         <button class="lang-btn" id="btn-en" onclick="selectLang('en')">
-          🇬🇧 English
+          🇬🇧 英語
         </button>
       </div>
 
-      <input type="text" id="room-input" placeholder="合言葉 / Room code" />
+      <input type="text" id="room-input" placeholder="合言葉（例: room123）" />
       <br />
-      <button onclick="createRoom()">部屋を作る / Create Room (Host)</button>
-      <button onclick="joinRoom()">参加 / Join Room</button>
+      <button onclick="createRoom()">部屋を作る（ホスト）</button>
+      <button onclick="joinRoom()">部屋に参加</button>
       <p id="status"></p>
 
       <!-- ホスト用 -->
@@ -221,13 +221,13 @@
         <p id="players-label">参加者：</p>
         <ul id="player-list"></ul>
         <button id="start-btn" onclick="hostStartGame()">
-          ▶ ゲームを開始 / Start Game
+          ▶ ゲームを開始する
         </button>
       </div>
 
       <!-- ゲスト用 -->
       <p id="waiting-msg" style="display: none; color: #888">
-        ホストがゲームを開始するまでお待ちください… / Waiting for host to start…
+        ホストがゲームを開始するまでお待ちください…
       </p>
     </div>
 
@@ -457,42 +457,41 @@
             }
           },
           ui: {
-            title: "Word Poker",
-            roomLabel: (r) => `Room: ${r}`,
-            exchangeHint: "Your hand — tap to select, then exchange",
-            exchangeBtn: "Exchange selected cards (once only)",
-            exchangeWait: "Done! Waiting for everyone else…",
-            exchangeCount: (d, t) => `Exchange done: ${d} / ${t}`,
-            wordHint:
-              "Spell words using your hand. Same letter needs multiple cards.",
-            handLabel: "Your hand",
-            wordPlaceholder: "Type a word",
-            submitBtn: "✔ Submit",
-            finishBtn: "Done → Results",
-            wordRow: (w, s) => `✅ <strong>${w}</strong>: ${s}pt`,
-            noWord: "no words",
-            scoreUnit: "pt",
-            colName: "Name",
-            colWords: "Words",
-            colScore: "Score",
-            rematchBtn: "🔄 Rematch",
-            rematchWait: "Rematch requested. Waiting for everyone…",
-            rematchCount: (n) => `Waiting for ${n} more player(s)…`,
-            win: "🎉 You win!",
-            last: "😢 Last place…",
-            rank: (n) => `You ranked ${n}${["st", "nd", "rd"][n - 1] || "th"}`,
-            allUsed: "You used all your cards!",
-            invalidCard: (w) => `"${w}" uses letters not in your hand.`,
-            invalidWord: (w) => `"${w}" was not found in the dictionary.`,
-            confirmNoExchange: "Exchange nothing?",
-            confirmOnlyYou: "Only you are here. Start anyway?",
-            namePromptDefault: "Host",
-            namePromptGuest: "Player",
-            playersLabel: "Players:",
-            waitingMsg: "Waiting for the host to start the game…",
-            statusCreated: (r) => `Room "${r}" created`,
-            statusJoined: (r) => `Joined room "${r}"`,
-            statusPlayers: (names) => `Players: ${names.join(", ")}`,
+            title: "文字ポーカー",
+            roomLabel: (r) => `対戦ルーム: ${r}`,
+            exchangeHint: "あなたの手札（クリックで選択して交換）",
+            exchangeBtn: "選択したカードを交換する（1回のみ）",
+            exchangeWait: "交換完了。全員が終わるまでお待ちください…",
+            exchangeCount: (d, t) => `交換完了 ${d} / ${t} 人`,
+            wordHint: "手札の文字を使って単語を入力 / 同じ文字を複数回使う場合は複数枚必要",
+            handLabel: "あなたの手札",
+            wordPlaceholder: "単語を入力",
+            submitBtn: "確定",
+            finishBtn: "終了→結果へ",
+            wordRow: (w, s) => `✅ <strong>${w}</strong>: ${s}点`,
+            noWord: "単語なし",
+            scoreUnit: "点",
+            colName: "名前",
+            colWords: "単語",
+            colScore: "得点",
+            rematchBtn: "🔄 再戦する",
+            rematchWait: "再戦リクエストを送りました。全員が揃うまで待っています…",
+            rematchCount: (n) => `再戦待ち：あと ${n} 人`,
+            win: "🎉 あなたの勝ち！",
+            last: "😢 最下位…",
+            rank: (n) => `あなたは ${n} 位`,
+            allUsed: "手札をすべて使いました！",
+            invalidCard: (w) => `「${w}」は手札にない文字が含まれています。`,
+            invalidWord: (w) => `「${w}」は辞書に見つかりませんでした。`,
+            confirmNoExchange: "1枚も交換しませんか？",
+            confirmOnlyYou: "参加者があなただけですが開始しますか？",
+            namePromptDefault: "ホスト",
+            namePromptGuest: "プレイヤー",
+            playersLabel: "参加者：",
+            waitingMsg: "ホストがゲームを開始するまでお待ちください…",
+            statusCreated: (r) => `部屋「${r}」を作りました`,
+            statusJoined: (r) => `部屋「${r}」に参加しました`,
+            statusPlayers: (names) => `参加者：${names.join("、")}`,
           },
         },
       };
@@ -644,9 +643,9 @@
       // ══════════════════════════════════════════════════════════════
       function createRoom() {
         roomName = document.getElementById("room-input").value.trim();
-        if (!roomName) return alert("合言葉/Room code を入力してください");
+        if (!roomName) return alert("合言葉を入力してください");
         myName =
-          prompt("名前 / Your name:", L.ui.namePromptDefault) ||
+          prompt("名前を入力してください", L.ui.namePromptDefault) ||
           L.ui.namePromptDefault;
         isHost = true;
         // 言語選択UIを非表示に
@@ -688,9 +687,9 @@
 
       function joinRoom() {
         roomName = document.getElementById("room-input").value.trim();
-        if (!roomName) return alert("合言葉/Room code を入力してください");
+        if (!roomName) return alert("合言葉を入力してください");
         // ゲストは言語未定（ホストから受け取る）
-        myName = prompt("名前 / Your name:", "Player") || "Player";
+        myName = prompt("名前を入力してください", "プレイヤー") || "プレイヤー";
         isHost = false;
         document.getElementById("lang-section").style.display = "none";
 
@@ -699,7 +698,7 @@
           hostConn = peer.connect("wordpoker-" + roomName);
           hostConn.on("open", () => {
             document.getElementById("status").innerText =
-              `Joined room "${roomName}"`;
+              `部屋「${roomName}」に参加しました`;
             document.getElementById("waiting-msg").style.display = "block";
           });
           hostConn.on("data", (data) => guestReceive(data));
