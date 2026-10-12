@@ -419,11 +419,8 @@ function mineUpdateUI() {
     const guessBtn = mineCanAnswer[mineTurn]
       ? `<button onclick="mineChooseAction('guess')" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">💡 ワードを答える</button>`
       : `<span class="text-xs text-slate-400 italic whitespace-nowrap shrink-0">💡 回答権なし（マスを開いてください）</span>`;
-    promptEl.innerHTML = `<span class="text-base">🎮</span> <span>${minePlayerNames[mineTurn]}の番です。アクションを選択してください</span>`;
-    controlsEl.innerHTML = `<button onclick="mineChooseAction('open')" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition whitespace-nowrap shrink-0">🔍 マスを開く</button>${guessBtn}`;
-  } else if (minePhase === "open") {
-    promptEl.innerHTML = `<span class="text-base">🔍</span> <span>${minePlayerNames[mineTurn]}: 盤面のマスを1つ押してください</span>`;
-    controlsEl.innerHTML = `<button onclick="mineCancelGuess()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition whitespace-nowrap shrink-0">↩ キャンセル</button>`;
+    promptEl.innerHTML = `<span class="text-base">🎮</span> <span>${minePlayerNames[mineTurn]}の番です。マスを押すか、ワードを答えてください</span>`;
+    controlsEl.innerHTML = guessBtn;
   } else if (minePhase === "guess") {
     promptEl.innerHTML = `<span class="text-base">💡</span> <span>ひらがなで正解を入力:</span>`;
     controlsEl.innerHTML = `
@@ -441,14 +438,8 @@ function mineUpdateUI() {
 // ━━ アクション ━━
 function mineChooseAction(action) {
   if (mineTurn !== mineMyPlayerNum) return;
-  if (action === "open") {
-    minePhase = "open";
-    mineUpdateUI();
-    mineAddLog(`${minePlayerNames[mineTurn]}: マスを選んでください`);
-  } else {
-    minePhase = "guess";
-    mineUpdateUI();
-  }
+  minePhase = "guess";
+  mineUpdateUI();
 }
 function mineCancelGuess() {
   minePhase = "choose";
@@ -456,12 +447,12 @@ function mineCancelGuess() {
 }
 
 function mineHandleCellClick(char) {
-  if (minePhase !== "open" || mineTurn !== mineMyPlayerNum) return;
+  if ((minePhase !== "open" && minePhase !== "choose") || mineTurn !== mineMyPlayerNum) return;
+  minePhase = "choose"; // openフェーズを経由しなくてもよい
   if (lobbyIsHost) {
     mineProcessCellOpen(char);
   } else {
     lobbyHostConn.send({ type: "MINE_OPEN", char });
-    minePhase = "choose";
     mineUpdateUI();
   }
 }
@@ -477,7 +468,8 @@ function mineProcessCellOpen(char) {
     mineSkipped = mineTurn;
   } else {
     if (data.neighborBombs === 0) {
-      mineRevealCellRecursive(char);
+      // neighborBombs=0の隣接セルを連鎖展開（startCharは既にisOpen=trueなので隣から始める）
+      mineRevealNeighbors(char);
       mineAddLog(
         `${minePlayerNames[mineTurn]}が「${char}」を開いた（連鎖展開）`,
       );
@@ -498,6 +490,7 @@ function mineProcessCellOpen(char) {
 }
 
 function mineRevealCellRecursive(startChar) {
+  // 爆弾なし・未開放のセルを開き、neighborBombs=0なら隣も連鎖展開
   if (
     !startChar ||
     !mineCellsData[startChar] ||
@@ -507,39 +500,29 @@ function mineRevealCellRecursive(startChar) {
     return;
   mineCellsData[startChar].isOpen = true;
   if (mineCellsData[startChar].neighborBombs === 0) {
-    let rPos = -1,
-      cPos = -1;
-    for (let r = 0; r < MINE_KANA_GRID.length && rPos === -1; r++)
-      for (let c = 0; c < MINE_KANA_GRID[r].length; c++)
-        if (MINE_KANA_GRID[r][c] === startChar) {
-          rPos = r;
-          cPos = c;
-          break;
-        }
-    if (rPos !== -1) {
-      for (let dr = -1; dr <= 1; dr++)
-        for (let dc = -1; dc <= 1; dc++) {
-          if (!dr && !dc) continue;
-          const nr = rPos + dr,
-            nc = cPos + dc;
-          if (
-            nr >= 0 &&
-            nr < MINE_KANA_GRID.length &&
-            nc >= 0 &&
-            nc < MINE_KANA_GRID[nr].length
-          ) {
-            const next = MINE_KANA_GRID[nr][nc];
-            if (
-              next &&
-              mineCellsData[next] &&
-              !mineCellsData[next].isOpen &&
-              mineCellsData[next].bombs === 0
-            )
-              mineRevealCellRecursive(next);
-          }
-        }
-    }
+    mineRevealNeighbors(startChar);
   }
+}
+
+function mineRevealNeighbors(char) {
+  let rPos = -1, cPos = -1;
+  for (let r = 0; r < MINE_KANA_GRID.length && rPos === -1; r++)
+    for (let c = 0; c < MINE_KANA_GRID[r].length; c++)
+      if (MINE_KANA_GRID[r][c] === char) { rPos = r; cPos = c; break; }
+  if (rPos === -1) return;
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const nr = rPos + dr, nc = cPos + dc;
+      if (
+        nr >= 0 && nr < MINE_KANA_GRID.length &&
+        nc >= 0 && nc < MINE_KANA_GRID[nr].length
+      ) {
+        const next = MINE_KANA_GRID[nr][nc];
+        if (next && mineCellsData[next] && !mineCellsData[next].isOpen && mineCellsData[next].bombs === 0)
+          mineRevealCellRecursive(next);
+      }
+    }
 }
 
 function mineSubmitGuess() {

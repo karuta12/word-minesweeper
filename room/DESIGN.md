@@ -19,8 +19,12 @@ room/
 ├── lobby.js     # 共通ロビー（部屋作成・参加・メッセージルーティング）
 ├── poker.js     # 文字ポーカー ゲームロジック
 ├── bingo.js     # しりとりビンゴ ゲームロジック
-└── mine.js      # 五十音マインスイーパー ゲームロジック
+├── mine.js      # 五十音マインスイーパー ゲームロジック
+└── word.csv     # マインスイーパー問題集（ジャンル,ワード）
 ```
+
+スクリプトは `?v=YYYYMMDDhhmm` 形式のクエリパラメータでキャッシュバスティングを行う。  
+バージョン番号はロビー画面の右下に自動表示される。
 
 ---
 
@@ -43,8 +47,8 @@ room/
 ```
 lobby-screen（ロビー）
   ├── [ホスト] 部屋を作る → 参加者待機 → ゲーム選択
-  │     ├── 🃏 文字ポーカー  → poker-screen
-  │     ├── 🎯 しりとりビンゴ → bingo-screen
+  │     ├── 🃏 文字ポーカー   → poker-screen
+  │     ├── 🎯 しりとりビンゴ  → bingo-screen
   │     └── 💣 マインスイーパー → mine-screen
   └── [ゲスト] 部屋に参加 → ホストがゲームを選ぶまで待機
                              → GAME_SELECTED を受信して各ゲーム画面へ
@@ -63,7 +67,7 @@ lobby-screen（ロビー）
 | `lobbyPeer` | Peer | 自分の PeerJS インスタンス |
 | `lobbyConns` | `{ peerId: { conn, name } }` | ホスト用：接続中のゲスト一覧 |
 | `lobbyHostConn` | DataConnection | ゲスト用：ホストへの接続 |
-| `lobbyMyName` | string | 自分の名前 |
+| `lobbyMyName` | string | 自分の名前（部屋作成・参加時に prompt で入力） |
 | `lobbyIsHost` | boolean | ホストかどうか |
 | `lobbyRoomName` | string | 合言葉 |
 | `lobbyLang` | `"ja"` \| `"en"` | 文字ポーカーの言語設定 |
@@ -74,7 +78,7 @@ lobby-screen（ロビー）
 |------|------|
 | `lobbyCreateRoom()` | ホストとして部屋を作成（PeerID を合言葉から生成） |
 | `lobbyJoinRoom()` | ゲストとして部屋に参加 |
-| `lobbyBroadcast(msg)` | 全ゲストに一斉送信 |
+| `lobbyBroadcast(msg)` | 全ゲストに一斉送信（ホスト自身には届かない） |
 | `lobbySelectGame(game)` | ゲームを選択して全員にゲーム開始を通知 |
 | `lobbyHostReceive(peerId, data)` | ホスト側のメッセージルーター |
 | `lobbyGuestReceive(data)` | ゲスト側のメッセージルーター |
@@ -86,7 +90,7 @@ lobby-screen（ロビー）
 ゲスト接続
   → ホスト: connection イベント
   → ホスト→ゲスト: { type: "ASK_NAME" }
-  → ゲスト→ホスト: { type: "GIVE_NAME", name: "..." }
+  → ゲスト→ホスト: { type: "GIVE_NAME", name: "..." }   ※open時にも自動送信
   → ホスト: lobbyConns[peerId].name を更新・参加者リスト再描画
 
 ゲーム開始
@@ -167,7 +171,8 @@ type: "REMATCH_START"      → pokerGuestReceive
 
 ### ゲーム概要
 
-しりとりをしながら 5×5 ビンゴカードのマスを埋める。2列ビンゴで勝利。
+しりとりをしながら 5×5 ビンゴカードのマスを埋める。2列ビンゴで勝利。  
+プレイヤー人数はロビーの参加者数で自動決定（`bingo-player-count-display` に表示）。
 
 ### ゲームフロー
 
@@ -184,12 +189,18 @@ type: "REMATCH_START"      → pokerGuestReceive
 
 - 全頻出ひらがな（72文字）から「り」を除いた文字をプレイヤー数で均等分配（蛇行順）
 - 各プレイヤーのカードはシャッフルして 24 枚を選択
-- 中央（インデックス12）は必ず「り」（FREE マス）
+- 中央（インデックス12）は必ず「り」（FREE マス、最初からチェック済み）
 
 ### チェックロジック
 
 入力された単語に含まれる文字（正規化後）が **全プレイヤーのカード** に反映される。  
-`bingoCheckedChars[playerIndex]` が各プレイヤーのチェック済み文字の Set。
+`bingoCheckedChars[playerIndex]` が各プレイヤーのチェック済み文字の Set。  
+DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり、`bingoApplyWord` でチェック済みクラスを付与する。
+
+### ビンゴ判定
+
+`bingoEvaluateCard(cardEl)` が DOM の `.checked` クラスを見て行・列・斜めの完成列数を返す。  
+`bingoUpdateCardStatus` が全カードを走査し、`bingos >= 2` で `bingoTriggerWin` を呼ぶ。
 
 ### 文字正規化
 
@@ -223,25 +234,52 @@ type: "REMATCH_START"      → pokerGuestReceive
 ```
 1. ホストがお題を選択（word.csv または MINE_DEFAULT_CSV から）
 2. ホストがセルデータを生成してゲスト（P2）に送信
-3. ターン制で交互に操作
-   - 「マスを開く」: 五十音表のマスを1つ選んで開ける
+3. ターン制で交互に操作（自分のターンは直接マスをクリック or ワードを答える）
+   - マスをクリック: 五十音表のマスを1つ選んで開ける
      - 爆弾マス: 答えの文字が含まれる → 1回休み（SKIP）
-     - 安全マス: 周囲の爆弾数を表示（連鎖展開あり）
-   - 「ワードを答える」: 正解すれば勝利、不正解で回答権喪失
+     - 安全マス (neighborBombs=0): 隣接セルを連鎖展開
+     - 安全マス (neighborBombs>0): 周囲の爆弾数を表示
+   - 「ワードを答える」ボタン: 正解すれば勝利、不正解で回答権喪失
 4. 位置ヒント（各プレイヤー1回のみ）
    - 開いている爆弾マスの中から1つを選び、その文字がお題の何文字目かを表示
 5. タイマー（180秒）切れで強制的にランダムマスを開放
 ```
 
+### フェーズ管理
+
+`minePhase` 変数で UI の状態を管理する。
+
+| フェーズ | 説明 |
+|---------|------|
+| `"choose"` | 自分のターン: マスをクリックするか「ワードを答える」を選ぶ |
+| `"guess"` | ワード入力中 |
+
+> `"open"` フェーズは廃止。`choose` 状態のまま直接マスをクリックできる。
+
 ### セルデータ構造
 
 ```js
 cells[char] = {
-  char: "あ",       // 五十音の文字
-  isOpen: boolean,  // 開いているか
-  bombs: number,    // この文字がお題に含まれる回数（爆弾数）
+  char: "あ",            // 五十音の文字
+  isOpen: boolean,       // 開いているか
+  bombs: number,         // この文字がお題に含まれる回数（爆弾数）
   neighborBombs: number  // 隣接8マスの爆弾総数
 }
+```
+
+### 連鎖展開ロジック
+
+```
+mineProcessCellOpen(char)
+  → isOpen = true
+  → neighborBombs === 0 なら mineRevealNeighbors(char) を呼ぶ
+
+mineRevealCellRecursive(char)
+  → 未開放・爆弾なし のセルを isOpen = true にする
+  → neighborBombs === 0 なら mineRevealNeighbors(char) を呼ぶ
+
+mineRevealNeighbors(char)
+  → 隣接8マスを走査し、未開放・爆弾なし のセルに mineRevealCellRecursive を再帰
 ```
 
 ### 濁点・小書きマッピング
@@ -296,10 +334,15 @@ cells[char] = {
 
 ```html
 <!-- index.html 末尾 -->
-<script>function showScreen(id) { ... }</script>
-<script src="lobby.js"></script>   <!-- lobbyXxx 関数を定義 -->
-<script src="poker.js"></script>   <!-- pokerXxx 関数を定義 -->
-<script src="bingo.js"></script>   <!-- bingoXxx 関数を定義 -->
-<script src="mine.js"></script>    <!-- mineXxx 関数を定義 -->
-<script>mineInit();</script>       <!-- 問題DBをfetchで初期化 -->
+<script>
+  function showScreen(id) { ... }
+</script>
+<script src="lobby.js?v=..."></script>   <!-- lobbyXxx 関数を定義 -->
+<script src="poker.js?v=..."></script>   <!-- pokerXxx 関数を定義 -->
+<script src="bingo.js?v=..."></script>   <!-- bingoXxx 関数を定義 -->
+<script src="mine.js?v=..."></script>    <!-- mineXxx 関数を定義 -->
+<script>
+  mineInit();       // 問題DBをfetchで初期化
+  // bingo.js の ?v= からビルド番号を取得してロビー画面に表示
+</script>
 ```
