@@ -260,7 +260,7 @@
           <input
             type="text"
             id="word-input"
-            onkeydown="if (event.key === 'Enter') submitWord();"
+            onkeydown="if (event.key === 'Enter' && !event.isComposing) submitWord();"
           />
           <button id="submit-btn" onclick="submitWord()"></button>
           <button id="finish-btn" onclick="finishWords()"></button>
@@ -545,15 +545,8 @@
         document.getElementById("hand-label").textContent = L.ui.handLabel;
         document.getElementById("word-input").placeholder =
           L.ui.wordPlaceholder;
-        // 英語版は大文字入力
-        document.getElementById("word-input").oninput =
-          lang === "en"
-            ? () => {
-                document.getElementById("word-input").value = document
-                  .getElementById("word-input")
-                  .value.toUpperCase();
-              }
-            : null;
+        // 英語版は大文字入力（submitWord内で変換するのでリアルタイム書き換えは不要）
+        document.getElementById("word-input").oninput = null;
         document.getElementById("submit-btn").textContent = L.ui.submitBtn;
         document.getElementById("finish-btn").textContent = L.ui.finishBtn;
         document.getElementById("col-name").textContent = L.ui.colName;
