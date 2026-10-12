@@ -61,21 +61,41 @@
       }
       #word-section {
         display: none;
-        margin-top: 20px;
-      }
-      #word-section input {
-        font-size: 20px;
-        padding: 6px 10px;
-        width: 200px;
-        text-align: center;
-      }
-      #word-section button {
-        font-size: 16px;
+        margin-top: 10px;
+        /* 画面下部の固定バーの分だけ余白 */
+        padding-bottom: 110px;
       }
       #word-list {
         margin-top: 10px;
         font-size: 16px;
         line-height: 1.8;
+      }
+      /* 入力欄を画面下部に固定 */
+      #word-input-bar {
+        display: none;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: #fff;
+        border-top: 2px solid #ccc;
+        padding: 10px 12px;
+        box-shadow: 0 -2px 8px rgba(0,0,0,0.15);
+        z-index: 100;
+      }
+      #word-input-bar input {
+        font-size: 20px;
+        padding: 6px 10px;
+        width: calc(100% - 200px);
+        max-width: 300px;
+        text-align: center;
+        border: 2px solid #aaa;
+        border-radius: 6px;
+      }
+      #word-input-bar button {
+        font-size: 16px;
+        padding: 8px 14px;
+        margin-left: 4px;
       }
       #result-section {
         display: none;
@@ -125,17 +145,21 @@
 
       <!-- 単語入力フェーズ -->
       <div id="word-section">
+        <p style="font-size:14px; color:#555; margin-bottom:4px;">
+          手札の文字を使って単語を入力してください。<br>
+          同じ文字を複数回使う場合は手札に複数枚必要です。
+        </p>
         <p>あなたの手札</p>
         <div id="my-hand-final"></div>
-        <p style="margin-top:16px; font-size:14px; color:#555;">
-          手札の文字を使って単語を入力してください。<br>
-          同じ文字を複数回使う場合は手札に複数枚必要です。<br>
-          <strong>確定</strong>を押すごとに単語を追加できます（手札がなくなるまで）。
-        </p>
-        <input type="text" id="word-input" placeholder="単語を入力" />
-        <button onclick="submitWord()">確定</button>
-        <button id="finish-btn" onclick="finishWords()">入力を終了して結果を見る</button>
         <div id="word-list"></div>
+      </div>
+
+      <!-- 単語入力バー（画面下部固定） -->
+      <div id="word-input-bar">
+        <input type="text" id="word-input" placeholder="単語を入力"
+               onkeydown="if(event.key==='Enter') submitWord()" />
+        <button onclick="submitWord()">確定</button>
+        <button id="finish-btn" onclick="finishWords()">終了→結果へ</button>
       </div>
 
       <!-- 結果表示フェーズ -->
@@ -338,6 +362,7 @@
         if (!hasExchanged || !opponentExchanged) return;
         document.getElementById("exchange-section").style.display = "none";
         document.getElementById("word-section").style.display = "block";
+        document.getElementById("word-input-bar").style.display = "block";
         renderHandFinal();
       }
 
@@ -383,6 +408,7 @@
         const remaining = myHand.filter(c => !c.used);
         if (remaining.length === 0) {
           alert("手札をすべて使いました！");
+          document.getElementById("word-input-bar").style.display = "none";
           finishWords();
         }
       }
@@ -398,9 +424,7 @@
       // ── 単語入力終了→得点送信 ────────────────────────────────────
       function finishWords() {
         iFinished = true;
-        document.getElementById("word-input").disabled = true;
-        document.querySelector("#word-section button").disabled = true;
-        document.getElementById("finish-btn").disabled = true;
+        document.getElementById("word-input-bar").style.display = "none";
 
         const detail = myWords.map(w => `${w.word}(${w.score}点)`).join("、");
         conn.send({ type: "SCORE", total: myTotalScore, detail });
