@@ -94,6 +94,7 @@ function lobbyCreateRoom() {
   lobbyPeer.on("connection", (c) => {
     const pid = c.peer;
     lobbyConns[pid] = { conn: c, name: "接続中…" };
+    lobbyUpdatePlayerList(); // 接続直後に「接続中…」として表示
 
     c.on("open", () => {
       // 接続が確立したら名前を要求
@@ -139,6 +140,8 @@ function lobbyJoinRoom() {
       document.getElementById("lobby-status").innerText =
         `部屋「${lobbyRoomName}」に参加しました`;
       document.getElementById("lobby-waiting-msg").style.display = "block";
+      // open 時に自分から名前を送信（ASK_NAME を待たずに確実に届ける）
+      lobbyHostConn.send({ type: "GIVE_NAME", name: lobbyMyName });
     });
 
     lobbyHostConn.on("data", (data) => lobbyGuestReceive(data));
