@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>文字ポーカー対戦</title>
+    <title>文字ポーカー対戦ver1.1</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
       body {
@@ -29,9 +29,18 @@
         user-select: none;
         transition: transform 0.15s;
       }
-      .black { color: #333;    border: 2px solid #333; }
-      .blue  { color: #0066cc; border: 2px solid #0066cc; }
-      .red   { color: #cc0000; border: 2px solid #cc0000; }
+      .black {
+        color: #333;
+        border: 2px solid #333;
+      }
+      .blue {
+        color: #0066cc;
+        border: 2px solid #0066cc;
+      }
+      .red {
+        color: #cc0000;
+        border: 2px solid #cc0000;
+      }
       .selected {
         transform: translateY(-10px);
         background: #fff3cd;
@@ -47,17 +56,22 @@
         cursor: pointer;
         margin: 5px;
       }
-      #game-screen { display: none; }
+      #game-screen {
+        display: none;
+      }
 
       /* ── 単語入力フェーズ ── */
-      #word-section { display: none; margin-top: 10px; }
+      #word-section {
+        display: none;
+        margin-top: 10px;
+      }
 
       #word-input-area {
         margin: 10px 0;
         padding: 10px;
         background: #fff;
         border-radius: 8px;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
         display: inline-block;
       }
       #word-input-area input {
@@ -88,19 +102,31 @@
         padding: 20px;
         border-radius: 12px;
         background: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
         font-size: 18px;
       }
       #result-section h2 {
         font-size: 28px;
         margin: 0 0 10px;
       }
-      .win  { color: #cc0000; }
-      .lose { color: #0066cc; }
-      .draw { color: #666; }
+      .win {
+        color: #cc0000;
+      }
+      .lose {
+        color: #0066cc;
+      }
+      .draw {
+        color: #666;
+      }
 
-      #rematch-area { margin-top: 16px; }
-      #rematch-status { font-size: 15px; color: #888; margin-top: 8px; }
+      #rematch-area {
+        margin-top: 16px;
+      }
+      #rematch-status {
+        font-size: 15px;
+        color: #888;
+        margin-top: 8px;
+      }
     </style>
   </head>
   <body>
@@ -133,16 +159,20 @@
 
       <!-- 単語入力フェーズ -->
       <div id="word-section">
-        <p style="font-size:13px; color:#666; margin:4px 0;">
+        <p style="font-size: 13px; color: #666; margin: 4px 0">
           手札の文字を使って単語を入力 / 同じ文字を複数回使う場合は複数枚必要
         </p>
-        <p style="margin:6px 0;"><strong>あなたの手札</strong></p>
+        <p style="margin: 6px 0"><strong>あなたの手札</strong></p>
         <div id="my-hand-final"></div>
 
         <!-- 入力欄：手札のすぐ下 -->
         <div id="word-input-area">
-          <input type="text" id="word-input" placeholder="単語を入力"
-                 onkeydown="if(event.key==='Enter') submitWord()" />
+          <input
+            type="text"
+            id="word-input"
+            placeholder="単語を入力"
+            onkeydown="if (event.key === 'Enter') submitWord();"
+          />
           <button onclick="submitWord()">確定</button>
           <button id="finish-btn" onclick="finishWords()">終了→結果へ</button>
         </div>
@@ -153,12 +183,12 @@
       <!-- 結果表示フェーズ -->
       <div id="result-section">
         <p>あなたの得点</p>
-        <p id="my-score-detail" style="font-size:15px; color:#555;"></p>
-        <p><strong id="my-total-score" style="font-size:22px;"></strong></p>
-        <hr>
+        <p id="my-score-detail" style="font-size: 15px; color: #555"></p>
+        <p><strong id="my-total-score" style="font-size: 22px"></strong></p>
+        <hr />
         <p>相手の得点</p>
-        <p id="opp-score-detail" style="font-size:15px; color:#555;"></p>
-        <p><strong id="opp-total-score" style="font-size:22px;"></strong></p>
+        <p id="opp-score-detail" style="font-size: 15px; color: #555"></p>
+        <p><strong id="opp-total-score" style="font-size: 22px"></strong></p>
         <h2 id="result-label"></h2>
         <div id="rematch-area">
           <button onclick="requestRematch()">🔄 再戦する</button>
@@ -170,12 +200,78 @@
     <script>
       // ── 文字リスト（レアリティ別） ──────────────────────────────
       const rawList = [
-        "の","に","た","い","は","を","と","る","が","し","で","て","な","か","れ",
-        "ら","も","う","す","り","こ","だ","ま","さ","き","め","く","あ","け","ど",
-        "ん","え","よ","つ","や",
-        "そ","わ","ち","み","せ","ろ","ば","お","じ","べ","ず","げ","ほ","へ","び",
-        "む","ご","ね","ぶ","ぐ","ぎ","ひ","づ","ぼ","ざ","ふ","ぞ","ゆ","ぜ","ぬ",
-        "ぱ","ぴ","ぽ","ぷ","ぺ","ぢ","ー",
+        "の",
+        "に",
+        "た",
+        "い",
+        "は",
+        "を",
+        "と",
+        "る",
+        "が",
+        "し",
+        "で",
+        "て",
+        "な",
+        "か",
+        "れ",
+        "ら",
+        "も",
+        "う",
+        "す",
+        "り",
+        "こ",
+        "だ",
+        "ま",
+        "さ",
+        "き",
+        "め",
+        "く",
+        "あ",
+        "け",
+        "ど",
+        "ん",
+        "え",
+        "よ",
+        "つ",
+        "や",
+        "そ",
+        "わ",
+        "ち",
+        "み",
+        "せ",
+        "ろ",
+        "ば",
+        "お",
+        "じ",
+        "べ",
+        "ず",
+        "げ",
+        "ほ",
+        "へ",
+        "び",
+        "む",
+        "ご",
+        "ね",
+        "ぶ",
+        "ぐ",
+        "ぎ",
+        "ひ",
+        "づ",
+        "ぼ",
+        "ざ",
+        "ふ",
+        "ぞ",
+        "ゆ",
+        "ぜ",
+        "ぬ",
+        "ぱ",
+        "ぴ",
+        "ぽ",
+        "ぷ",
+        "ぺ",
+        "ぢ",
+        "ー",
       ];
 
       let deck = [];
@@ -198,9 +294,19 @@
         deck = [];
         rawList.forEach((char, index) => {
           let count, color, score;
-          if (index < 15)      { count = 3; color = "black"; score = 1; }
-          else if (index < 35) { count = 2; color = "blue";  score = 2; }
-          else                 { count = 1; color = "red";   score = 3; }
+          if (index < 15) {
+            count = 3;
+            color = "black";
+            score = 1;
+          } else if (index < 35) {
+            count = 2;
+            color = "blue";
+            score = 2;
+          } else {
+            count = 1;
+            color = "red";
+            score = 3;
+          }
           for (let i = 0; i < count; i++) deck.push({ char, color, score });
         });
         deck.sort(() => Math.random() - 0.5);
@@ -226,7 +332,8 @@
         document.getElementById("word-section").style.display = "none";
         document.getElementById("exchange-section").style.display = "block";
         document.getElementById("exchange-btn").disabled = false;
-        document.getElementById("opponent-status").innerText = "相手の選択を待っています...";
+        document.getElementById("opponent-status").innerText =
+          "相手の選択を待っています...";
         document.getElementById("word-list").innerHTML = "";
         document.getElementById("word-input").value = "";
         document.getElementById("word-input").disabled = false;
@@ -292,7 +399,7 @@
               "相手はカード交換を終えました ✅";
             checkBothExchanged();
           } else if (data.type === "SCORE") {
-            opponentScore  = data.total;
+            opponentScore = data.total;
             opponentDetail = data.detail;
             opponentFinished = true;
             checkBothFinished();
@@ -350,7 +457,7 @@
 
         const selectedDivs = document.querySelectorAll("#my-hand .selected");
         const indicesToReplace = Array.from(selectedDivs).map((div) =>
-          parseInt(div.dataset.index)
+          parseInt(div.dataset.index),
         );
 
         if (indicesToReplace.length === 0) {
@@ -373,9 +480,19 @@
         const pool = [];
         rawList.forEach((char, index) => {
           let count, color, score;
-          if (index < 15)      { count = 3; color = "black"; score = 1; }
-          else if (index < 35) { count = 2; color = "blue";  score = 2; }
-          else                 { count = 1; color = "red";   score = 3; }
+          if (index < 15) {
+            count = 3;
+            color = "black";
+            score = 1;
+          } else if (index < 35) {
+            count = 2;
+            color = "blue";
+            score = 2;
+          } else {
+            count = 1;
+            color = "red";
+            score = 3;
+          }
           for (let i = 0; i < count; i++) pool.push({ char, color, score });
         });
         return pool[Math.floor(Math.random() * pool.length)];
@@ -398,14 +515,19 @@
         if (!word) return;
         input.value = "";
 
-        const handCopy = myHand.map(c => ({ ...c }));
+        const handCopy = myHand.map((c) => ({ ...c }));
         let score = 0;
         let valid = true;
         const usedIndices = [];
 
         for (const ch of word) {
-          const idx = handCopy.findIndex(c => c.char === ch && !c._tmpUsed && !c.used);
-          if (idx === -1) { valid = false; break; }
+          const idx = handCopy.findIndex(
+            (c) => c.char === ch && !c._tmpUsed && !c.used,
+          );
+          if (idx === -1) {
+            valid = false;
+            break;
+          }
           handCopy[idx]._tmpUsed = true;
           score += handCopy[idx].score;
           usedIndices.push(idx);
@@ -417,7 +539,9 @@
           return;
         }
 
-        usedIndices.forEach(i => { myHand[i].used = true; });
+        usedIndices.forEach((i) => {
+          myHand[i].used = true;
+        });
         myTotalScore += score;
         myWords.push({ word, score });
 
@@ -425,7 +549,7 @@
         updateWordList();
         input.focus();
 
-        const remaining = myHand.filter(c => !c.used);
+        const remaining = myHand.filter((c) => !c.used);
         if (remaining.length === 0) {
           alert("手札をすべて使いました！");
           finishWords();
@@ -436,7 +560,7 @@
       function updateWordList() {
         const el = document.getElementById("word-list");
         el.innerHTML = myWords
-          .map(w => `✅ <strong>${w.word}</strong>：${w.score}点`)
+          .map((w) => `✅ <strong>${w.word}</strong>：${w.score}点`)
           .join("<br>");
       }
 
@@ -447,7 +571,9 @@
         document.getElementById("word-input").disabled = true;
         document.getElementById("finish-btn").disabled = true;
 
-        const detail = myWords.map(w => `${w.word}(${w.score}点)`).join("、") || "単語なし";
+        const detail =
+          myWords.map((w) => `${w.word}(${w.score}点)`).join("、") ||
+          "単語なし";
         conn.send({ type: "SCORE", total: myTotalScore, detail });
         checkBothFinished();
       }
@@ -459,11 +585,16 @@
         document.getElementById("word-section").style.display = "none";
         document.getElementById("result-section").style.display = "block";
 
-        const myDetail = myWords.map(w => `${w.word}(${w.score}点)`).join("、") || "単語なし";
+        const myDetail =
+          myWords.map((w) => `${w.word}(${w.score}点)`).join("、") ||
+          "単語なし";
         document.getElementById("my-score-detail").innerText = myDetail;
-        document.getElementById("my-total-score").innerText = `合計 ${myTotalScore} 点`;
-        document.getElementById("opp-score-detail").innerText = opponentDetail || "単語なし";
-        document.getElementById("opp-total-score").innerText = `合計 ${opponentScore} 点`;
+        document.getElementById("my-total-score").innerText =
+          `合計 ${myTotalScore} 点`;
+        document.getElementById("opp-score-detail").innerText =
+          opponentDetail || "単語なし";
+        document.getElementById("opp-total-score").innerText =
+          `合計 ${opponentScore} 点`;
 
         const label = document.getElementById("result-label");
         if (myTotalScore > opponentScore) {
@@ -482,7 +613,8 @@
       function requestRematch() {
         iWantRematch = true;
         document.querySelector("#rematch-area button").disabled = true;
-        document.getElementById("rematch-status").innerText = "再戦リクエストを送りました。相手を待っています...";
+        document.getElementById("rematch-status").innerText =
+          "再戦リクエストを送りました。相手を待っています...";
         conn.send({ type: "REMATCH_REQUEST" });
         checkBothRematch();
       }
@@ -491,7 +623,8 @@
       function checkBothRematch() {
         if (!iWantRematch || !opponentWantsRematch) {
           if (opponentWantsRematch && !iWantRematch) {
-            document.getElementById("rematch-status").innerText = "相手が再戦を希望しています！";
+            document.getElementById("rematch-status").innerText =
+              "相手が再戦を希望しています！";
           }
           return;
         }
