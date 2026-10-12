@@ -156,6 +156,48 @@ function lobbyJoinRoom() {
     });
   });
 }
+// ── ホスト受信（ロビー＋ゲーム中メッセージを振り分け） ──
+function lobbyHostReceive(peerId, data) {
+  if (data.type === "GIVE_NAME") {
+    if (lobbyConns[peerId]) {
+      lobbyConns[peerId].name = data.name;
+      lobbyUpdatePlayerList();
+    }
+  } else if (data.type === "BINGO_WORD") {
+    bingoHostReceive(peerId, data);
+  } else if (data.type === "MINE_OPEN" || data.type === "MINE_GUESS" || data.type === "MINE_HINT_REQUEST") {
+    mineHostReceive(peerId, data);
+  } else if (data.type === "EXCHANGE_DONE" || data.type === "SCORE" || data.type === "REMATCH_REQUEST") {
+    pokerHostReceive(peerId, data);
+  }
+}
+
+// ── ゲスト受信（ロビー＋ゲーム中メッセージを振り分け） ──
+function lobbyGuestReceive(data) {
+  if (data.type === "ASK_NAME") {
+    // ホストから名前を要求されたら返答
+    lobbyHostConn.send({ type: "GIVE_NAME", name: lobbyMyName });
+  } else if (data.type === "GAME_SELECTED") {
+    if (data.game === "poker") {
+      pokerGuestStart(data);
+    } else if (data.game === "bingo") {
+      bingoGuestStart(data);
+    } else if (data.game === "mine") {
+      mineGuestStart(data);
+    }
+  } else if (data.type === "BINGO_WORD" || data.type === "BINGO_WIN") {
+    bingoGuestReceive(data);
+  } else if (
+    data.type === "MINE_CELL_OPENED" || data.type === "MINE_TURN_CHANGE" ||
+    data.type === "MINE_GUESS_RESULT" || data.type === "MINE_HINT_REVEAL" ||
+    data.type === "MINE_TIMER"
+  ) {
+    mineGuestReceive(data);
+  } else if (data.type === "ALL_EXCHANGED" || data.type === "RESULT" || data.type === "REMATCH_START") {
+    pokerGuestReceive(data);
+  }
+}
+
 // ── ゲーム選択（ホストのみ） ──
 function lobbySelectGame(game) {
   const guestList = Object.values(lobbyConns);
@@ -173,10 +215,10 @@ function lobbySelectGame(game) {
         myIndex: i + 1,
         playerCount,
         names,
-        myCard: allCards[i + 1],
+        allCards: allCards,
       });
     });
-    bingoHostStart(playerCount, names, allCards[0]);
+    bingoHostStart(playerCount, names, allCards);
   } else if (game === "mine") {
     if (playerCount < 2) return alert("マインスイーパーは2人以上必要です");
     const mineNames = { 1: lobbyMyName, 2: guestList[0].name };

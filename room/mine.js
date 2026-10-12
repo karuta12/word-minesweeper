@@ -226,7 +226,14 @@ function mineGuestStart(data) {
   document.getElementById("mine-genre-badge").textContent =
     `ジャンル: ${data.genre}`;
   document.getElementById("mine-target-length").textContent = data.wordLength;
-  document.getElementById("mine-result-modal").classList.add("hidden");
+  const modal = document.getElementById("mine-result-modal");
+  modal.classList.add("hidden");
+  // ゲスト待機メッセージを削除
+  const waitMsg = document.getElementById("mine-guest-wait-msg");
+  if (waitMsg) waitMsg.remove();
+  // ボタンを非表示に戻す（次の勝利時に再制御）
+  const btn = modal.querySelector("button");
+  if (btn) btn.style.display = "";
   showScreen("mine-screen");
   mineRenderBoard();
   mineRenderWordSlots();
@@ -659,6 +666,24 @@ function mineTriggerVictory(winner) {
     `${minePlayerNames[winner]}の勝利！`;
   document.getElementById("mine-result-message").textContent =
     `お題「${word}」を見事に当てました！`;
+  // ホストのみ「もう一度プレイする」ボタンを表示
+  const btn = document.querySelector("#mine-result-modal button");
+  if (btn) {
+    if (lobbyIsHost) {
+      btn.style.display = "";
+      btn.textContent = "もう一度プレイする";
+    } else {
+      btn.style.display = "none";
+      const waitMsg = document.getElementById("mine-result-message");
+      const waitDiv = document.createElement("p");
+      waitDiv.id = "mine-guest-wait-msg";
+      waitDiv.style.cssText = "margin-top:12px;color:#888;font-size:14px;";
+      waitDiv.textContent = "⏳ ホストが次の問題を開始するまでお待ちください…";
+      if (!document.getElementById("mine-guest-wait-msg")) {
+        waitMsg.after(waitDiv);
+      }
+    }
+  }
   document.getElementById("mine-result-modal").classList.remove("hidden");
 }
 

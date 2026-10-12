@@ -441,7 +441,7 @@
       <button
         class="back-btn"
         onclick="
-          showScreen('select-screen');
+          showScreen('lobby-screen');
           pokerDestroy();
         "
       >
@@ -596,7 +596,7 @@
          ③ しりとりビンゴ
     ══════════════════════════════════════════════ -->
     <div id="bingo-screen" class="screen">
-      <button class="back-btn" onclick="showScreen('select-screen')">
+      <button class="back-btn" onclick="showScreen('lobby-screen')">
         ← ロビーへ
       </button>
       <h1 style="color: #333; font-size: 26px">5×5 しりとりビンゴ</h1>
@@ -605,39 +605,15 @@
         <label for="bingo-playerCount">人数：</label>
         <select
           id="bingo-playerCount"
-          onchange="bingoUpdateNameInputs()"
           style="font-size: 16px; padding: 6px 10px"
+          disabled
         >
           <option value="2">2人</option>
           <option value="3" selected>3人</option>
           <option value="4">4人</option>
         </select>
-        <button
-          onclick="bingoGenerateBoards()"
-          style="
-            font-size: 16px;
-            padding: 8px 12px;
-            cursor: pointer;
-            margin: 5px;
-          "
-        >
-          カードを新しく配り直す
-        </button>
       </div>
-      <div
-        id="bingo-nameInputsContainer"
-        class="name-inputs"
-        style="
-          display: flex;
-          justify-content: center;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-bottom: 10px;
-        "
-      ></div>
       <div id="bingo-turnIndicator" class="bingo-turn-indicator">
-        現在の番：-
-      </div>
 
       <div style="margin-bottom: 20px">
         <form id="bingo-wordForm" onsubmit="bingoSubmitWord(event)">
@@ -703,7 +679,7 @@
       <button
         class="back-btn"
         onclick="
-          showScreen('select-screen');
+          showScreen('lobby-screen');
           mineStopTimer();
         "
       >
@@ -985,5 +961,9 @@
   <script src="poker.js?v=202610121823"></script>
   <script src="bingo.js?v=202610121823"></script>
   <script src="mine.js?v=202610121823"></script>
+  <script>
+    // マインスイーパーの問題DBをページロード時に初期化
+    mineInit();
+  </script>
   </body>
 </html>

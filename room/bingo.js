@@ -11,29 +11,32 @@ const BINGO_FREQ_CHARS = [
 
 let bingoWordHistory = [];
 let bingoLastChar = null;
-let bingoCurrentTurn = 0;   // 現在のターンプレイヤーインデックス
+let bingoCurrentTurn = 0;    // 現在のターンプレイヤーインデックス
 let bingoPlayerNames = [];
 let bingoGameFinished = false;
-let bingoMyIndex = 0;        // 自分は何番目か
+let bingoMyIndex = 0;         // 自分は何番目か
 let bingoMyPlayerCount = 1;
-let bingoMyCard = [];        // 自分のカード文字配列（25文字）
+let bingoAllCards = [];       // 全プレイヤーのカード（2次元配列）
+// bingo状態追跡：各プレイヤーのチェック済みセル
+let bingoCheckedChars = [];   // bingoCheckedChars[playerIndex] = Set of chars
 
 // ── カード生成（ホストが全員分生成して配布） ──
 function bingoGenerateAllCards(playerCount) {
   function shuffle(arr) {
     let a = [...arr];
-    for (let i = a.length-1; i > 0; i--) {
-      const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
   }
-  let charsWithoutRi = BINGO_FREQ_CHARS.filter(c => c !== 'り');
-  let playerCharLists = Array.from({ length: playerCount }, () => []);
+  const charsWithoutRi = BINGO_FREQ_CHARS.filter(c => c !== 'り');
+  const playerCharLists = Array.from({ length: playerCount }, () => []);
   let forward = true, p = 0;
   for (let i = 0; i < charsWithoutRi.length; i++) {
     playerCharLists[p].push(charsWithoutRi[i]);
-    if (forward) { p++; if (p >= playerCount) { p = playerCount-1; forward = false; } }
-    else         { p--; if (p < 0)            { p = 0;             forward = true;  } }
+    if (forward) { p++; if (p >= playerCount) { p = playerCount - 1; forward = false; } }
+    else         { p--; if (p < 0)            { p = 0;               forward = true;  } }
   }
   return playerCharLists.map(list => {
     const cards = shuffle(list).slice(0, 24);
@@ -43,15 +46,16 @@ function bingoGenerateAllCards(playerCount) {
 }
 
 // ── ゲーム開始（ホスト） ──
-function bingoHostStart(playerCount, names, myCard) {
-  bingoMyIndex      = 0;
+function bingoHostStart(playerCount, names, allCards) {
+  bingoMyIndex       = 0;
   bingoMyPlayerCount = playerCount;
-  bingoPlayerNames  = names;
-  bingoMyCard       = myCard;
-  bingoWordHistory  = [];
-  bingoLastChar     = null;
-  bingoCurrentTurn  = 0;
-  bingoGameFinished = false;
+  bingoPlayerNames   = names;
+  bingoAllCards      = allCards; // 全員分のカードを保持
+  bingoWordHistory   = [];
+  bingoLastChar      = null;
+  bingoCurrentTurn   = 0;
+  bingoGameFinished  = false;
+  bingoCheckedChars  = names.map(() => new Set(['り']));
   showScreen('bingo-screen');
   bingoRenderBoard();
   bingoUpdateTurnDisplay();
@@ -62,11 +66,12 @@ function bingoGuestStart(data) {
   bingoMyIndex       = data.myIndex;
   bingoMyPlayerCount = data.playerCount;
   bingoPlayerNames   = data.names;
-  bingoMyCard        = data.myCard;
+  bingoAllCards      = data.allCards; // 全員分のカードを受け取る
   bingoWordHistory   = [];
   bingoLastChar      = null;
   bingoCurrentTurn   = 0;
   bingoGameFinished  = false;
+  bingoCheckedChars  = data.names.map(() => new Set(['り']));
   showScreen('bingo-screen');
   bingoRenderBoard();
   bingoUpdateTurnDisplay();
@@ -94,25 +99,16 @@ function bingoRenderBoard() {
         </span>
       </h3>`;
 
-    // 自分のカードだけ文字を表示、他人は裏面（他人カード表示は任意で「?」）
-    const cardChars = isMe ? bingoMyCard : bingoMyCard.map(() => '?');
-    // ただし他人のカードも確認できた方がゲームとして面白い
-    // → 全員同じ文字リストで生成済みなので実際には自分のカードのみ持っている
-    // ここでは「自分のカードだけ」表示する
     const gridDiv = document.createElement('div');
     gridDiv.className = 'bingo-grid';
-    // 自分のカードは操作可能、他人は表示のみ
-    (isMe ? bingoMyCard : Array(25).fill('？')).forEach((char, idx) => {
+    const card = bingoAllCards[pi]; // 全員のカードを使って表示
+    card.forEach((char, idx) => {
       const cell = document.createElement('div');
       cell.className = 'bingo-cell';
       cell.innerText = char;
-      if (isMe) {
-        cell.dataset.char = char;
-        if (idx === 12) cell.classList.add('center', 'checked');
-      } else {
-        cell.classList.add('other-card');
-        if (idx === 12) { cell.innerText = 'り'; cell.classList.add('center', 'checked'); }
-      }
+      cell.dataset.char = char;
+      cell.dataset.playerIndex = pi;
+      if (idx === 12) cell.classList.add('center', 'checked');
       gridDiv.appendChild(cell);
     });
     cardDiv.appendChild(gridDiv);
@@ -168,9 +164,8 @@ function bingoSubmitWord(event) {
     return;
   }
 
-  // ホスト経由で全員にブロードキャスト
   if (lobbyIsHost) {
-    // ホスト自身はそのまま適用
+    // ホスト自身はそのまま適用してブロードキャスト
     const msg = { type: 'BINGO_WORD', word, playerIndex: bingoMyIndex };
     lobbyBroadcast(msg);
     bingoApplyWord(word, bingoMyIndex);
@@ -179,7 +174,7 @@ function bingoSubmitWord(event) {
     lobbyHostConn.send({ type: 'BINGO_WORD', word });
     inputField.value = '';
     inputField.disabled = true;
-    document.getElementById('bingo-errorMsg').innerText = '送信中…';
+    errorMsg.innerText = '送信中…';
   }
 }
 
@@ -187,14 +182,16 @@ function bingoSubmitWord(event) {
 function bingoApplyWord(word, playerIndex) {
   const charsInWord = [...word].map(c => bingoNormalizeChar(c));
 
-  // 自分のカードのみ更新
-  document.querySelectorAll('#bingo-boards .bingo-player-card').forEach((card, idx) => {
-    if (idx !== bingoMyIndex) return;
-    card.querySelectorAll('.bingo-cell').forEach(cell => {
-      if (cell.dataset.char && charsInWord.includes(cell.dataset.char)) {
-        cell.classList.add('checked');
-      }
-    });
+  // 全プレイヤーのカードに対してチェック
+  bingoPlayerNames.forEach((_, pi) => {
+    const cardChecked = bingoCheckedChars[pi];
+    charsInWord.forEach(ch => cardChecked.add(ch));
+    // DOM も更新
+    document.querySelectorAll(`.bingo-player-card[data-player-index="${pi}"] .bingo-cell`)
+      .forEach(cell => {
+        const ch = bingoNormalizeChar(cell.dataset.char || '');
+        if (ch && cardChecked.has(ch)) cell.classList.add('checked');
+      });
   });
 
   bingoUpdateCardStatus();
@@ -215,10 +212,9 @@ function bingoApplyWord(word, playerIndex) {
 // ── ホスト受信（ビンゴ） ──
 function bingoHostReceive(peerId, data) {
   if (data.type === 'BINGO_WORD') {
-    const g = lobbyConns[peerId];
-    if (!g) return;
-    const senderIndex = Object.keys(lobbyConns).indexOf(peerId) + 1;
-    // ブロードキャスト（送信者含む全員に）
+    const guestList = Object.keys(lobbyConns);
+    const senderIndex = guestList.indexOf(peerId) + 1;
+    // 全員にブロードキャスト（送信者含む）
     lobbyBroadcast({ type: 'BINGO_WORD', word: data.word, playerIndex: senderIndex });
     bingoApplyWord(data.word, senderIndex);
   }
@@ -229,55 +225,69 @@ function bingoGuestReceive(data) {
   if (data.type === 'BINGO_WORD') {
     document.getElementById('bingo-errorMsg').innerText = '';
     bingoApplyWord(data.word, data.playerIndex);
+  } else if (data.type === 'BINGO_WIN') {
+    bingoGameFinished = true;
+    const modal = document.getElementById('bingo-winModal');
+    document.getElementById('bingo-winnerText').innerText =
+      `${data.winner} さんが 2列ビンゴを達成して勝利しました！ 🎉`;
+    modal.style.display = 'flex';
+    bingoUpdateTurnDisplay();
   }
 }
 
 // ── カード評価 ──
 function bingoEvaluateCard(cardEl) {
   const cells = cardEl.querySelectorAll('.bingo-cell');
-  let grid = [];
+  const grid = [];
   for (let r = 0; r < 5; r++) {
-    grid.push(Array.from({ length: 5 }, (_, c) => cells[r*5+c].classList.contains('checked')));
+    grid.push(Array.from({ length: 5 }, (_, c) => cells[r * 5 + c].classList.contains('checked')));
   }
-  let lines = [
+  const lines = [
     ...grid,
     ...Array.from({ length: 5 }, (_, c) => grid.map(row => row[c])),
-    [grid[0][0],grid[1][1],grid[2][2],grid[3][3],grid[4][4]],
-    [grid[0][4],grid[1][3],grid[2][2],grid[3][1],grid[4][0]],
+    [grid[0][0], grid[1][1], grid[2][2], grid[3][3], grid[4][4]],
+    [grid[0][4], grid[1][3], grid[2][2], grid[3][1], grid[4][0]],
   ];
   let bingos = 0, reaches = 0;
   lines.forEach(l => {
     const n = l.filter(Boolean).length;
-    if (n === 5) bingos++; else if (n === 4) reaches++;
+    if (n === 5) bingos++;
+    else if (n === 4) reaches++;
   });
   return { bingos, reaches };
 }
 
 function bingoUpdateCardStatus() {
-  // 自分のカードのみ評価
   document.querySelectorAll('.bingo-player-card').forEach((card, idx) => {
-    if (idx !== bingoMyIndex) return;
     const s = bingoEvaluateCard(card);
     const rb = document.getElementById(`bingo-reach_${idx}`);
     const bb = document.getElementById(`bingo-bingo_${idx}`);
     if (rb) rb.innerText = `リーチ: ${s.reaches}`;
     if (bb) bb.innerText = `ビンゴ: ${s.bingos}列`;
-    if (s.bingos >= 2 && !bingoGameFinished) bingoTriggerWin(bingoPlayerNames[idx]);
+    if (s.bingos >= 2 && !bingoGameFinished) {
+      bingoTriggerWin(bingoPlayerNames[idx]);
+    }
   });
 }
 
 function bingoTriggerWin(name) {
   bingoGameFinished = true;
   const modal = document.getElementById('bingo-winModal');
-  document.getElementById('bingo-winnerText').innerText = `${name} さんが 2列ビンゴを達成して勝利しました！ 🎉`;
+  document.getElementById('bingo-winnerText').innerText =
+    `${name} さんが 2列ビンゴを達成して勝利しました！ 🎉`;
   modal.style.display = 'flex';
   bingoUpdateTurnDisplay();
+  // ホストがゲスト全員に勝利を通知
+  if (lobbyIsHost) {
+    lobbyBroadcast({ type: 'BINGO_WIN', winner: name });
+  }
 }
+
 function bingoCloseModal() {
   document.getElementById('bingo-winModal').style.display = 'none';
 }
 
 function bingoNormalizeChar(ch) {
-  const m = { ぁ:'あ',ぃ:'い',ぅ:'う',ぇ:'え',ぉ:'お',っ:'つ',ゃ:'や',ゅ:'ゆ',ょ:'よ',ゎ:'わ' };
+  const m = { ぁ:'あ', ぃ:'い', ぅ:'う', ぇ:'え', ぉ:'お', っ:'つ', ゃ:'や', ゅ:'ゆ', ょ:'よ', ゎ:'わ' };
   return m[ch] || ch;
 }
