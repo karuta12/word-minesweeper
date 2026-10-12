@@ -491,6 +491,13 @@
           >
             💣 マインスイーパー
           </button>
+          <button
+            onclick="lobbySelectGame('mojipittan')"
+            class="room-btn room-btn-primary"
+            style="font-size: 18px; padding: 16px 28px; background: #6f42c1"
+          >
+            🔤 逆もじぴったん
+          </button>
         </div>
       </div>
 
@@ -941,6 +948,282 @@
     </div>
 
     <!-- ══════════════════════════════════════════════
+         ⑤ 逆もじぴったん
+    ══════════════════════════════════════════════ -->
+    <div id="mojipittan-screen" class="screen">
+      <style>
+        #mojipittan-screen {
+          font-family: sans-serif;
+          max-width: 600px;
+          margin: 0 auto;
+          padding: 12px;
+        }
+        .mojipit-status {
+          font-size: 15px;
+          font-weight: bold;
+          padding: 10px 14px;
+          border-radius: 8px;
+          margin: 10px 0;
+          background: #d1e7dd;
+          color: #0f5132;
+        }
+        .mojipit-players {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .mojipit-player-box {
+          flex: 1;
+          background: #f8f9fa;
+          border: 2px solid #dee2e6;
+          border-radius: 10px;
+          padding: 10px;
+          text-align: center;
+        }
+        .mojipit-player-box.active-turn {
+          border-color: #0d6efd;
+          background: #e7f1ff;
+        }
+        .mojipit-player-name {
+          font-weight: bold;
+          font-size: 15px;
+          margin-bottom: 4px;
+        }
+        .mojipit-score {
+          font-size: 22px;
+          font-weight: bold;
+          color: #0d6efd;
+        }
+        .mojipit-accuse-badge {
+          display: inline-block;
+          font-size: 11px;
+          color: white;
+          padding: 2px 8px;
+          border-radius: 10px;
+          margin-top: 4px;
+        }
+        .mojipit-grid {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 5px;
+          margin: 14px 0;
+          max-width: 320px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .mojipit-cell {
+          aspect-ratio: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          font-weight: bold;
+          border-radius: 8px;
+          border: 2px solid #dee2e6;
+          background: #f8f9fa;
+          transition: background 0.15s, border-color 0.15s;
+        }
+        .mojipit-cell.empty {
+          background: #fff;
+        }
+        .mojipit-cell.selectable {
+          cursor: pointer;
+          border-color: #adb5bd;
+        }
+        .mojipit-cell.selectable:hover {
+          background: #e7f1ff;
+          border-color: #0d6efd;
+        }
+        .mojipit-cell.selected {
+          background: #cfe2ff;
+          border-color: #0d6efd;
+          box-shadow: 0 0 0 3px rgba(13,110,253,0.3);
+        }
+        .mojipit-cell.filled {
+          background: #e9ecef;
+          color: #212529;
+        }
+        .mojipit-palette {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+          justify-content: center;
+          margin: 10px 0;
+          max-width: 500px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .mojipit-kana-btn {
+          width: 40px;
+          height: 40px;
+          font-size: 16px;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          background: #fff;
+          cursor: pointer;
+          transition: background 0.1s;
+        }
+        .mojipit-kana-btn:hover:not(:disabled) {
+          background: #e7f1ff;
+          border-color: #0d6efd;
+        }
+        .mojipit-kana-btn:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+        .mojipit-accuse-area {
+          background: #fff3cd;
+          border: 1px solid #ffc107;
+          border-radius: 10px;
+          padding: 12px 16px;
+          margin: 10px 0;
+        }
+        .mojipit-accuse-area label {
+          font-weight: bold;
+          font-size: 14px;
+          display: block;
+          margin-bottom: 6px;
+        }
+        .mojipit-accuse-area input {
+          font-size: 16px;
+          padding: 6px 10px;
+          border-radius: 6px;
+          border: 1px solid #aaa;
+          width: 160px;
+          margin-right: 8px;
+        }
+        .mojipit-weblio-link {
+          display: inline-block;
+          font-size: 12px;
+          color: #0d6efd;
+          margin-left: 8px;
+          vertical-align: middle;
+        }
+        .mojipit-log-box {
+          margin-top: 16px;
+          background: #fff;
+          border: 1px solid #dee2e6;
+          border-radius: 8px;
+          padding: 10px 14px;
+          max-height: 140px;
+          overflow-y: auto;
+        }
+        .mojipit-log-box ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          font-size: 13px;
+          color: #555;
+          line-height: 1.8;
+        }
+        .mojipit-modal {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0,0,0,0.5);
+          z-index: 1000;
+          align-items: center;
+          justify-content: center;
+        }
+        .mojipit-modal-content {
+          background: #fff;
+          border-radius: 14px;
+          padding: 32px 40px;
+          text-align: center;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+        .mojipit-modal-content h2 {
+          font-size: 26px;
+          margin-bottom: 12px;
+        }
+        .mojipit-place-hint {
+          font-size: 13px;
+          color: #888;
+          margin: 4px 0 8px;
+          text-align: center;
+        }
+      </style>
+
+      <button class="back-btn" onclick="showScreen('lobby-screen')">← ロビーへ</button>
+      <h1 style="font-size:24px;margin-bottom:4px;">🔤 逆もじぴったん</h1>
+      <p style="font-size:13px;color:#888;margin:0 0 10px;">5×5マスに交互に文字を置き、指摘で点数を稼ごう</p>
+
+      <!-- ステータス -->
+      <div id="mojipit-status" class="mojipit-status"></div>
+
+      <!-- プレイヤー情報 -->
+      <div class="mojipit-players">
+        <div class="mojipit-player-box" id="mojipit-player-box-0">
+          <div class="mojipit-player-name" id="mojipit-name-0">P1</div>
+          <div class="mojipit-score" id="mojipit-score-0">0</div>
+          <div>点</div>
+          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-0">指摘可</span>
+        </div>
+        <div class="mojipit-player-box" id="mojipit-player-box-1">
+          <div class="mojipit-player-name" id="mojipit-name-1">P2</div>
+          <div class="mojipit-score" id="mojipit-score-1">0</div>
+          <div>点</div>
+          <span class="mojipit-accuse-badge" id="mojipit-accuse-badge-1">指摘可</span>
+        </div>
+      </div>
+
+      <!-- グリッド -->
+      <div id="mojipit-grid" class="mojipit-grid"></div>
+
+      <!-- 文字を置くヒント -->
+      <p id="mojipit-place-hint" class="mojipit-place-hint" style="display:none;">
+        👆 マスを選んでから、下の文字ボタンを押して置いてください
+      </p>
+
+      <!-- 指摘ボタン -->
+      <div style="text-align:center;margin:8px 0;">
+        <button id="mojipit-accuse-btn" class="room-btn room-btn-primary"
+          style="background:#ffc107;color:#333;display:none;"
+          onclick="mojipStartAccuse()">
+          👆 指摘する
+        </button>
+      </div>
+
+      <!-- 指摘エリア -->
+      <div id="mojipit-accuse-area" class="mojipit-accuse-area" style="display:none;">
+        <label>
+          指摘する単語を入力：
+          <a id="mojipit-weblio-link" href="https://www.weblio.jp/" target="_blank" class="mojipit-weblio-link">📖 weblio で確認</a>
+        </label>
+        <input type="text" id="mojipit-accuse-input" placeholder="例: りんご"
+          autocomplete="off"
+          oninput="mojipUpdateWeblioLink()"
+          onkeydown="if(event.key==='Enter'){}"/>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="room-btn room-btn-primary" style="background:#28a745;"
+            onclick="mojipJudgeAccuse(true)">✅ 成功（単語ではなかった）</button>
+          <button class="room-btn room-btn-primary" style="background:#dc3545;"
+            onclick="mojipJudgeAccuse(false)">❌ 失敗（単語だった）</button>
+          <button class="room-btn room-btn-secondary"
+            onclick="mojipCancelAccuse()">戻る</button>
+        </div>
+      </div>
+
+      <!-- 文字パレット -->
+      <div id="mojipit-palette" class="mojipit-palette"></div>
+
+      <!-- ログ -->
+      <div class="mojipit-log-box">
+        <strong style="font-size:13px;color:#555;">📋 ログ</strong>
+        <ul id="mojipit-log"></ul>
+      </div>
+
+      <!-- 結果モーダル -->
+      <div id="mojipit-result-modal" class="mojipit-modal">
+        <div class="mojipit-modal-content">
+          <h2>🎉 ゲーム終了！</h2>
+          <p id="mojipit-result-text" style="font-size:18px;margin:10px 0 20px;"></p>
+          <button class="room-btn room-btn-primary" onclick="mojipCloseResult()">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
          JavaScript
     ══════════════════════════════════════════════ -->
     <script>
@@ -951,10 +1234,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610121929"></script>
-    <script src="poker.js?v=202610121929"></script>
-    <script src="bingo.js?v=202610121929"></script>
-    <script src="mine.js?v=202610121929"></script>
+    <script src="lobby.js?v=202610122139"></script>
+    <script src="poker.js?v=202610122139"></script>
+    <script src="bingo.js?v=202610122139"></script>
+    <script src="mine.js?v=202610122139"></script>
+    <script src="mojipittan.js?v=202610122139"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();

@@ -172,6 +172,8 @@ function lobbyHostReceive(peerId, data) {
     mineHostReceive(peerId, data);
   } else if (data.type === "EXCHANGE_DONE" || data.type === "SCORE" || data.type === "REMATCH_REQUEST") {
     pokerHostReceive(peerId, data);
+  } else if (data.type === "MOJIPIT_PLACE" || data.type === "MOJIPIT_ACCUSE") {
+    mojipHostReceive(peerId, data);
   }
 }
 
@@ -187,6 +189,8 @@ function lobbyGuestReceive(data) {
       bingoGuestStart(data);
     } else if (data.game === "mine") {
       mineGuestStart(data);
+    } else if (data.game === "mojipittan") {
+      mojipGuestStart(data);
     }
   } else if (data.type === "BINGO_WORD" || data.type === "BINGO_WIN") {
     bingoGuestReceive(data);
@@ -198,6 +202,8 @@ function lobbyGuestReceive(data) {
     mineGuestReceive(data);
   } else if (data.type === "ALL_EXCHANGED" || data.type === "RESULT" || data.type === "REMATCH_START") {
     pokerGuestReceive(data);
+  } else if (data.type === "MOJIPIT_PLACE" || data.type === "MOJIPIT_ACCUSE" || data.type === "MOJIPIT_FINISH") {
+    mojipGuestReceive(data);
   }
 }
 
@@ -239,5 +245,17 @@ function lobbySelectGame(game) {
       });
     });
     mineHostStart(mineNames, question, cellsData);
+  } else if (game === "mojipittan") {
+    if (playerCount < 2) return alert("逆もじぴったんは2人必要です");
+    if (playerCount > 2) return alert("逆もじぴったんは2人専用です");
+    guestList.forEach((g, i) => {
+      g.conn.send({
+        type: "GAME_SELECTED",
+        game: "mojipittan",
+        myIndex: i + 1,
+        names,
+      });
+    });
+    mojipHostStart(names);
   }
 }
