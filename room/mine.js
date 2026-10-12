@@ -200,6 +200,7 @@ function mineHostStart(names, question, cellsData) {
     question.word.length;
   document.getElementById("mine-result-modal").classList.add("hidden");
   showScreen("mine-screen");
+  mineUpdatePlayerNameDisplay();
   mineRenderBoard();
   mineRenderWordSlots();
   mineUpdateUI();
@@ -235,6 +236,7 @@ function mineGuestStart(data) {
   const btn = modal.querySelector("button");
   if (btn) btn.style.display = "";
   showScreen("mine-screen");
+  mineUpdatePlayerNameDisplay();
   mineRenderBoard();
   mineRenderWordSlots();
   mineUpdateUI();
@@ -370,6 +372,14 @@ function mineAddLog(text) {
   const div = document.createElement("div");
   div.textContent = `[ターン${mineTurn}: ${minePlayerNames[mineTurn]}] ${text}`;
   box.prepend(div);
+}
+
+// ━━ プレイヤー名表示更新 ━━
+function mineUpdatePlayerNameDisplay() {
+  const p1El = document.getElementById("mine-p1-display-name");
+  const p2El = document.getElementById("mine-p2-display-name");
+  if (p1El) p1El.textContent = minePlayerNames[1];
+  if (p2El) p2El.textContent = minePlayerNames[2];
 }
 
 // ━━ UI更新 ━━
