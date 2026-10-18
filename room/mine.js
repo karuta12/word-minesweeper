@@ -74,6 +74,82 @@ let mineP1HintUsed = false;
 let mineP2HintUsed = false;
 let mineRevealedPos = {};
 
+const MINE_STORAGE_KEY = "word_minesweeper_host_state";
+
+function mineSaveState() {
+  if (!lobbyIsHost || !mineCurrent || !mineCurrent.word) return;
+  const state = {
+    roomName: lobbyRoomName,
+    names: minePlayerNames,
+    question: mineCurrent,
+    cellsData: mineCellsData,
+    turn: mineTurn,
+    skipped: mineSkipped,
+    revealedPos: mineRevealedPos,
+    canAnswer: mineCanAnswer,
+    p1HintUsed: mineP1HintUsed,
+    p2HintUsed: mineP2HintUsed,
+    timeLeft: mineTimeLeft,
+    genre: mineGenre,
+    wordLength: mineWordLength,
+  };
+  try {
+    localStorage.setItem(MINE_STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error("Failed to save mine state:", e);
+  }
+}
+
+function mineLoadState() {
+  try {
+    const raw = localStorage.getItem(MINE_STORAGE_KEY);
+    if (!raw) return null;
+    const state = JSON.parse(raw);
+    if (state && state.roomName === lobbyRoomName && state.question && state.question.word) {
+      return state;
+    }
+  } catch (e) {
+    console.error("Failed to load mine state:", e);
+  }
+  return null;
+}
+
+function mineClearState() {
+  try {
+    localStorage.removeItem(MINE_STORAGE_KEY);
+  } catch (e) {}
+}
+
+function mineResumeHostState(state) {
+  mineMyPlayerNum = 1;
+  minePlayerNames = state.names;
+  mineCurrent = state.question;
+  mineCellsData = state.cellsData;
+  mineGenre = state.genre;
+  mineWordLength = state.wordLength;
+  mineTurn = state.turn;
+  mineSkipped = state.skipped;
+  minePhase = "choose";
+  mineP1HintUsed = state.p1HintUsed;
+  mineP2HintUsed = state.p2HintUsed;
+  mineRevealedPos = state.revealedPos;
+  mineCanAnswer = state.canAnswer;
+  mineTimeLeft = state.timeLeft || MINE_TURN_TIME;
+
+  document.getElementById("mine-genre-badge").textContent =
+    `ジャンル: ${state.question.genre}`;
+  document.getElementById("mine-target-length").textContent =
+    state.question.word.length;
+  document.getElementById("mine-result-modal").classList.add("hidden");
+  showScreen("mine-screen");
+  mineUpdatePlayerNameDisplay();
+  mineRenderBoard();
+  mineRenderWordSlots();
+  mineUpdateUI();
+  mineAddLog(`前回のゲーム状態を復元しました。（ターン: ${minePlayerNames[mineTurn]}）`);
+  mineStartTimer();
+}
+
 // ━━ CSV 読み込み（ホスト用） ━━
 function mineParseCSV(text) {
   return text
@@ -206,6 +282,7 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
   mineUpdateUI();
   mineAddLog(`新しい問題が開始されました。（先攻: ${minePlayerNames[mineTurn]} / 文字数: ${question.word.length}）`);
   mineStartTimer();
+  mineSaveState();
 }
 
 // ━━ ゲーム開始（ゲスト） ━━
@@ -216,13 +293,16 @@ function mineGuestStart(data) {
   mineGenre = data.genre;
   mineWordLength = data.wordLength;
   mineCurrent = { genre: data.genre, word: null }; // word はゲストは知らない
-  mineTurn = data.firstTurn || 1;
-  mineSkipped = null;
+  mineTurn = data.firstTurn || data.turn || 1;
+  mineSkipped = data.skipped || null;
   minePhase = "choose";
-  mineP1HintUsed = false;
-  mineP2HintUsed = false;
-  mineRevealedPos = {};
-  mineCanAnswer = { 1: true, 2: true };
+  mineP1HintUsed = data.p1HintUsed || false;
+  mineP2HintUsed = data.p2HintUsed || false;
+  mineRevealedPos = data.revealedPos || {};
+  mineCanAnswer = data.canAnswer || { 1: true, 2: true };
+  if (data.timeLeft !== undefined) {
+    mineTimeLeft = data.timeLeft;
+  }
 
   document.getElementById("mine-genre-badge").textContent =
     `ジャンル: ${data.genre}`;
@@ -234,7 +314,7 @@ function mineGuestStart(data) {
   mineRenderBoard();
   mineRenderWordSlots();
   mineUpdateUI();
-  mineAddLog(`新しい問題が開始されました。（先攻: ${minePlayerNames[mineTurn]} / 文字数: ${data.wordLength}）`);
+  mineAddLog(`ゲームに復帰しました。（先攻/現在ターン: ${minePlayerNames[mineTurn]} / 文字数: ${data.wordLength}）`);
   mineStartTimer();
 }
 
@@ -593,6 +673,7 @@ function mineEndTurn() {
   }
   mineUpdateUI();
   mineStartTimer();
+  mineSaveState();
 }
 
 function mineTriggerPlayerHint(num) {
@@ -654,10 +735,12 @@ function mineProcessHint(num) {
   });
   mineRenderWordSlots();
   mineUpdateUI();
+  mineSaveState();
 }
 
 function mineTriggerVictory(winner, word) {
   mineStopTimer();
+  mineClearState();
   const correctWord = word || mineCurrent.word || "（答え）";
   mineCurrent.word = correctWord;
   // 正解時にスロットの文字を全開示
@@ -747,6 +830,7 @@ function mineGuestReceive(data) {
 // ━━ 問題変更（ホストのみ） ━━
 function mineInitGame() {
   if (!lobbyIsHost) return;
+  mineClearState();
   const q = minePickQuestion();
   const cells = mineBuildCellsData(q.word);
   const guestList = Object.values(lobbyConns);

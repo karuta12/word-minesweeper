@@ -89,6 +89,11 @@ function lobbyCreateRoom() {
       `部屋「${lobbyRoomName}」を作りました（待機中...）`;
     document.getElementById("host-lobby").style.display = "block";
     lobbyUpdatePlayerList();
+
+    const saved = typeof mineLoadState === "function" ? mineLoadState() : null;
+    if (saved && confirm(`部屋「${lobbyRoomName}」の前回のマインスイーパーのゲームデータが見つかりました。続きから再開しますか？`)) {
+      mineResumeHostState(saved);
+    }
   });
 
   lobbyPeer.on("connection", (c) => {
@@ -104,8 +109,12 @@ function lobbyCreateRoom() {
     c.on("data", (data) => lobbyHostReceive(pid, data));
 
     c.on("close", () => {
+      const playerName = lobbyConns[pid]?.name;
       delete lobbyConns[pid];
       lobbyUpdatePlayerList();
+      if (playerName && typeof minePlayerNames !== "undefined" && playerName === minePlayerNames[2]) {
+        mineAddLog(`⚠️ ${playerName} の接続が切れました（再接続待ち...）`, true);
+      }
     });
 
     c.on("error", (err) => {
@@ -162,9 +171,36 @@ function lobbyJoinRoom() {
 // ── ホスト受信（ロビー＋ゲーム中メッセージを振り分け） ──
 function lobbyHostReceive(peerId, data) {
   if (data.type === "GIVE_NAME") {
+    const peerName = data.name;
     if (lobbyConns[peerId]) {
-      lobbyConns[peerId].name = data.name;
+      lobbyConns[peerId].name = peerName;
       lobbyUpdatePlayerList();
+    }
+    // マインスイーパープレイ中の再接続チェック
+    let matchedPlayerNum = null;
+    if (typeof minePlayerNames !== "undefined" && minePlayerNames[2] === peerName) {
+      matchedPlayerNum = 2;
+    }
+    if (matchedPlayerNum && typeof mineCellsData !== "undefined" && Object.keys(mineCellsData).length > 0) {
+      if (lobbyConns[peerId]) {
+        lobbyConns[peerId].conn.send({
+          type: "GAME_SELECTED",
+          game: "mine",
+          playerNum: matchedPlayerNum,
+          names: minePlayerNames,
+          genre: mineGenre,
+          wordLength: mineWordLength,
+          cellsData: mineCellsData,
+          firstTurn: mineTurn,
+          revealedPos: mineRevealedPos,
+          p1HintUsed: mineP1HintUsed,
+          p2HintUsed: mineP2HintUsed,
+          canAnswer: mineCanAnswer,
+          skipped: mineSkipped,
+          timeLeft: mineTimeLeft,
+        });
+        mineAddLog(`👤 ${peerName} がゲームに再接続しました。`, true);
+      }
     }
   } else if (data.type === "BINGO_WORD") {
     bingoHostReceive(peerId, data);
