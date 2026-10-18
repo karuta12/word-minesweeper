@@ -1,6 +1,6 @@
 # ゲームロビー 設計ドキュメント
 
-> 最終更新: 2026-10-12
+> 最終更新: 2026-10-18
 
 ---
 
@@ -294,7 +294,7 @@ mineRevealNeighbors(char)
 | セル開放の正誤判定 | ✅ 実行 | ホストに送信して委譲 |
 | ワード正誤判定 | ✅ 実行（word を知っている） | ホストに送信して委譲 |
 | ヒント計算 | ✅ 実行 | ホストに送信して委譲 |
-| タイマー制御 | ✅ 実行（10秒ごとに同期） | 表示のみ |
+| タイマー制御 | ✅ 実行（毎秒同期） | クライアント側で毎秒計算＋ホストから毎秒同期 |
 | 問題変更 | ✅ 実行 | 待機（ホストからの GAME_SELECTED を受信） |
 
 ### 主要メッセージ
@@ -306,10 +306,10 @@ mineRevealNeighbors(char)
 | `MINE_CELL_OPENED` | ホスト→全員 | `{ cellsData, skipped }` 更新後の盤面 |
 | `MINE_TURN_CHANGE` | ホスト→全員 | `{ turn, skipped }` ターン変更 |
 | `MINE_GUESS` | ゲスト→ホスト | `{ answer }` ワード回答 |
-| `MINE_GUESS_RESULT` | ホスト→全員 | `{ correct, winner? / playerNum }` |
+| `MINE_GUESS_RESULT` | ホスト→全員 | `{ correct, winner?, word?, playerNum?, answer }` 正誤判定・回答内容・正解ワード連携 |
 | `MINE_HINT_REQUEST` | ゲスト→ホスト | ヒント要求 |
 | `MINE_HINT_REVEAL` | ホスト→全員 | `{ revealedPositions, hintPlayer }` |
-| `MINE_TIMER` | ホスト→全員 | `{ timeLeft }` タイマー同期（10秒ごと） |
+| `MINE_TIMER` | ホスト→全員 | `{ timeLeft }` タイマー同期（毎秒） |
 
 ---
 

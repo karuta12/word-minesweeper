@@ -241,23 +241,24 @@ function mineGuestStart(data) {
   mineRenderWordSlots();
   mineUpdateUI();
   mineAddLog(`新しい問題が開始されました。（文字数: ${data.wordLength}）`);
-  // ゲストはタイマーを表示するが制御しない（ホストが管理）
-  mineUpdateTimerDisplay();
+  mineStartTimer();
 }
 
-// ━━ タイマー（ホストのみ制御） ━━
+// ━━ タイマー（クライアント側で毎秒計算、ホストは10秒ごと、またはターン交代時に同期） ━━
 function mineStartTimer() {
   mineStopTimer();
   mineTimeLeft = MINE_TURN_TIME;
   mineUpdateTimerDisplay();
-  if (!lobbyIsHost) return; // ゲストはタイマーを動かさない
   mineTimerInterval = setInterval(() => {
-    mineTimeLeft--;
-    mineUpdateTimerDisplay();
-    // ゲストにも時間を同期（毎秒は重いので10秒ごと）
-    if (mineTimeLeft % 10 === 0)
+    if (mineTimeLeft > 0) {
+      mineTimeLeft--;
+      mineUpdateTimerDisplay();
+    }
+    if (lobbyIsHost) {
+      // 毎秒ゲストへ時間を同期（タイマー自体はクライアント側で計算）
       lobbyBroadcast({ type: "MINE_TIMER", timeLeft: mineTimeLeft });
-    if (mineTimeLeft <= 0) mineHandleTimeout();
+      if (mineTimeLeft <= 0) mineHandleTimeout();
+    }
   }, 1000);
 }
 function mineStopTimer() {
@@ -282,15 +283,13 @@ function mineUpdateTimerDisplay() {
 function mineHandleTimeout() {
   // ホストのみ実行
   mineStopTimer();
-  mineAddLog(
-    `⏱️ ${minePlayerNames[mineTurn]}の制限時間が切れました！強制的にマスを開けます。`,
-  );
+  mineAddLog(`⏱️ 制限時間が切れました！強制的にマスを開けます。`, true);
   const open = Object.keys(mineCellsData).filter(
     (c) => !mineCellsData[c].isOpen,
   );
   if (open.length > 0) {
     const rc = open[Math.floor(Math.random() * open.length)];
-    mineAddLog(`🎲 時間切れ強制開放: 「${rc}」`);
+    mineAddLog(`🎲 時間切れ強制開放: 「${rc}」`, true);
     mineProcessCellOpen(rc);
   } else {
     mineEndTurn();
@@ -366,12 +365,17 @@ function mineRenderWordSlots() {
 }
 
 // ━━ ログ ━━
-function mineAddLog(text) {
+function mineAddLog(text, broadcast = false) {
   const box = document.getElementById("mine-log-box");
   if (!box) return;
   const div = document.createElement("div");
-  div.textContent = `[ターン${mineTurn}: ${minePlayerNames[mineTurn]}] ${text}`;
+  const logText = `[ターン${mineTurn}: ${minePlayerNames[mineTurn]}] ${text}`;
+  div.textContent = logText;
   box.prepend(div);
+
+  if (lobbyIsHost && broadcast) {
+    lobbyBroadcast({ type: "MINE_LOG", text: text });
+  }
 }
 
 // ━━ プレイヤー名表示更新 ━━
@@ -542,35 +546,41 @@ function mineSubmitGuess() {
   const val = inputEl.value.trim();
   if (!val) return;
 
+  mineAddLog(`💡 ワード「${val}」を回答しました。判定中...`);
+
   if (lobbyIsHost) {
     // ホストは自分で正誤判定
     mineJudgeAnswer(val, mineMyPlayerNum);
   } else {
     // ゲストはホストに送って判定してもらう
-    lobbyHostConn.send({ type: "MINE_GUESS", answer: val });
+    lobbyHostConn.send({ type: "MINE_GUESS", answer: val, playerNum: mineMyPlayerNum });
     minePhase = "choose";
     mineUpdateUI();
   }
 }
 
 function mineJudgeAnswer(answer, playerNum) {
+  const name = minePlayerNames[playerNum] || `プレイヤー${playerNum}`;
   if (answer === mineCurrent.word) {
-    mineAddLog(`🎉 ${minePlayerNames[playerNum]}がワード「${answer}」を正解！`);
+    mineAddLog(`🎉 ${name}がワード「${answer}」を正解！`);
     lobbyBroadcast({
       type: "MINE_GUESS_RESULT",
       correct: true,
       winner: playerNum,
+      answer: answer,
       word: mineCurrent.word,
     });
-    mineTriggerVictory(playerNum);
+    mineTriggerVictory(playerNum, mineCurrent.word);
   } else {
-    mineAddLog(
-      `❌ ${minePlayerNames[playerNum]}の回答「${answer}」は不正解。回答権を失います。`,
-    );
+    mineAddLog(`❌ ${name}の回答「${answer}」は不正解。回答権を失います。`);
     mineCanAnswer[playerNum] = false;
-    lobbyBroadcast({ type: "MINE_GUESS_RESULT", correct: false, playerNum });
-    minePhase = "choose";
-    mineUpdateUI();
+    lobbyBroadcast({
+      type: "MINE_GUESS_RESULT",
+      correct: false,
+      playerNum: playerNum,
+      answer: answer,
+    });
+    mineEndTurn();
   }
 }
 
@@ -605,7 +615,7 @@ function mineTriggerPlayerHint(num) {
   if (lobbyIsHost) {
     mineProcessHint(num);
   } else {
-    lobbyHostConn.send({ type: "MINE_HINT_REQUEST" });
+    lobbyHostConn.send({ type: "MINE_HINT_REQUEST", playerNum: num });
   }
 }
 
@@ -652,13 +662,20 @@ function mineProcessHint(num) {
   mineUpdateUI();
 }
 
-function mineTriggerVictory(winner) {
+function mineTriggerVictory(winner, word) {
   mineStopTimer();
-  const word = mineCurrent.word || "（答え）";
+  const correctWord = word || mineCurrent.word || "（答え）";
+  mineCurrent.word = correctWord;
+  // 正解時にスロットの文字を全開示
+  for (let i = 0; i < correctWord.length; i++) {
+    mineRevealedPos[i] = correctWord[i];
+  }
+  mineRenderWordSlots();
+
   document.getElementById("mine-result-title").textContent =
     `${minePlayerNames[winner]}の勝利！`;
   document.getElementById("mine-result-message").textContent =
-    `お題「${word}」を見事に当てました！`;
+    `お題「${correctWord}」を見事に当てました！`;
   // ホストのみ「もう一度プレイする」ボタンを表示
   const btn = document.querySelector("#mine-result-modal button");
   if (btn) {
@@ -685,9 +702,9 @@ function mineHostReceive(peerId, data) {
   if (data.type === "MINE_OPEN") {
     mineProcessCellOpen(data.char);
   } else if (data.type === "MINE_GUESS") {
-    mineJudgeAnswer(data.answer, 2); // ゲストは常にP2
+    mineJudgeAnswer(data.answer, data.playerNum || 2);
   } else if (data.type === "MINE_HINT_REQUEST") {
-    mineProcessHint(2);
+    mineProcessHint(data.playerNum || 2);
   }
 }
 
@@ -702,12 +719,20 @@ function mineGuestReceive(data) {
     mineCanAnswer[mineTurn] = true;
     if (data.skipped) mineSkipped = null;
     mineUpdateUI();
+    mineStartTimer();
   } else if (data.type === "MINE_GUESS_RESULT") {
+    const name = minePlayerNames[data.winner || data.playerNum] || `プレイヤー${data.winner || data.playerNum}`;
     if (data.correct) {
-      mineTriggerVictory(data.winner);
+      mineCurrent.word = data.word;
+      mineAddLog(
+        `🎉 ${name}がワード「${data.answer || data.word}」を正解！`,
+      );
+      mineTriggerVictory(data.winner, data.word);
     } else {
       mineCanAnswer[data.playerNum] = false;
-      mineAddLog(`❌ ${minePlayerNames[data.playerNum]}の回答は不正解でした。`);
+      mineAddLog(
+        `❌ ${name}の回答「${data.answer}」は不正解。回答権を失います。`,
+      );
       minePhase = "choose";
       mineUpdateUI();
     }
@@ -720,6 +745,8 @@ function mineGuestReceive(data) {
   } else if (data.type === "MINE_TIMER") {
     mineTimeLeft = data.timeLeft;
     mineUpdateTimerDisplay();
+  } else if (data.type === "MINE_LOG") {
+    mineAddLog(data.text);
   }
 }
 

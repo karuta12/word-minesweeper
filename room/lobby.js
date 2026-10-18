@@ -197,10 +197,11 @@ function lobbyGuestReceive(data) {
   } else if (
     data.type === "MINE_CELL_OPENED" || data.type === "MINE_TURN_CHANGE" ||
     data.type === "MINE_GUESS_RESULT" || data.type === "MINE_HINT_REVEAL" ||
-    data.type === "MINE_TIMER"
-  ) {
+    data.type === "MINE_TIMER" || data.type === "MINE_LOG"
+    ) {
     mineGuestReceive(data);
-  } else if (data.type === "ALL_EXCHANGED" || data.type === "RESULT" || data.type === "REMATCH_START") {
+    }
+ else if (data.type === "ALL_EXCHANGED" || data.type === "RESULT" || data.type === "REMATCH_START") {
     pokerGuestReceive(data);
   } else if (data.type === "MOJIPIT_PLACE" || data.type === "MOJIPIT_ACCUSE" || data.type === "MOJIPIT_FINISH") {
     mojipGuestReceive(data);
