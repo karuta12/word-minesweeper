@@ -234,6 +234,7 @@ function lobbySelectGame(game) {
     const mineNames = { 1: lobbyMyName, 2: guestList[0].name };
     const question = minePickQuestion();
     const cellsData = mineBuildCellsData(question.word);
+    const firstTurn = Math.random() < 0.5 ? 1 : 2;
     guestList.forEach((g) => {
       g.conn.send({
         type: "GAME_SELECTED",
@@ -243,9 +244,10 @@ function lobbySelectGame(game) {
         genre: question.genre,
         wordLength: question.word.length,
         cellsData: cellsData,
+        firstTurn: firstTurn,
       });
     });
-    mineHostStart(mineNames, question, cellsData);
+    mineHostStart(mineNames, question, cellsData, firstTurn);
   } else if (game === "mojipittan") {
     if (playerCount < 2) return alert("逆もじぴったんは2人必要です");
     if (playerCount > 2) return alert("逆もじぴったんは2人専用です");

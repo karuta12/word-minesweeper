@@ -301,7 +301,7 @@ mineRevealNeighbors(char)
 
 | type | 方向 | 内容 |
 |------|------|------|
-| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData }` |
+| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData, firstTurn }` |
 | `MINE_OPEN` | ゲスト→ホスト | `{ char }` 開けたいマス |
 | `MINE_CELL_OPENED` | ホスト→全員 | `{ cellsData, skipped }` 更新後の盤面 |
 | `MINE_TURN_CHANGE` | ホスト→全員 | `{ turn, skipped }` ターン変更 |
@@ -313,7 +313,11 @@ mineRevealNeighbors(char)
 
 ---
 
-## CSVフォーマット（マインスイーパー問題集）
+## 終了時の動作・盤面確認
+
+- ゲーム終了時（正解判定時）、勝敗メッセージと共に「閉じる（盤面を見る）」ボタンがモーダルおよびアクションパネルに表示されます。
+- モーダルを閉じることで、結果モーダルを非表示にし、最終的な盤面の状態を確認することができます。
+- ホストはアクションパネルまたはモーダル内から「もう一度プレイする」ことで、先攻後攻を新たにランダム決定して次の問題を開始できます。
 
 ```csv
 ジャンル,ワード

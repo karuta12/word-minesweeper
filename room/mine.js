@@ -179,14 +179,14 @@ function mineBuildCellsData(word) {
 }
 
 // ━━ ゲーム開始（ホスト） ━━
-function mineHostStart(names, question, cellsData) {
+function mineHostStart(names, question, cellsData, firstTurn = 1) {
   mineMyPlayerNum = 1;
   minePlayerNames = names;
   mineCurrent = question;
   mineCellsData = cellsData;
   mineGenre = question.genre;
   mineWordLength = question.word.length;
-  mineTurn = 1;
+  mineTurn = firstTurn;
   mineSkipped = null;
   minePhase = "choose";
   mineP1HintUsed = false;
@@ -204,7 +204,7 @@ function mineHostStart(names, question, cellsData) {
   mineRenderBoard();
   mineRenderWordSlots();
   mineUpdateUI();
-  mineAddLog(`新しい問題が開始されました。（文字数: ${question.word.length}）`);
+  mineAddLog(`新しい問題が開始されました。（先攻: ${minePlayerNames[mineTurn]} / 文字数: ${question.word.length}）`);
   mineStartTimer();
 }
 
@@ -216,7 +216,7 @@ function mineGuestStart(data) {
   mineGenre = data.genre;
   mineWordLength = data.wordLength;
   mineCurrent = { genre: data.genre, word: null }; // word はゲストは知らない
-  mineTurn = 1;
+  mineTurn = data.firstTurn || 1;
   mineSkipped = null;
   minePhase = "choose";
   mineP1HintUsed = false;
@@ -229,18 +229,12 @@ function mineGuestStart(data) {
   document.getElementById("mine-target-length").textContent = data.wordLength;
   const modal = document.getElementById("mine-result-modal");
   modal.classList.add("hidden");
-  // ゲスト待機メッセージを削除
-  const waitMsg = document.getElementById("mine-guest-wait-msg");
-  if (waitMsg) waitMsg.remove();
-  // ボタンを非表示に戻す（次の勝利時に再制御）
-  const btn = modal.querySelector("button");
-  if (btn) btn.style.display = "";
   showScreen("mine-screen");
   mineUpdatePlayerNameDisplay();
   mineRenderBoard();
   mineRenderWordSlots();
   mineUpdateUI();
-  mineAddLog(`新しい問題が開始されました。（文字数: ${data.wordLength}）`);
+  mineAddLog(`新しい問題が開始されました。（先攻: ${minePlayerNames[mineTurn]} / 文字数: ${data.wordLength}）`);
   mineStartTimer();
 }
 
@@ -676,25 +670,25 @@ function mineTriggerVictory(winner, word) {
     `${minePlayerNames[winner]}の勝利！`;
   document.getElementById("mine-result-message").textContent =
     `お題「${correctWord}」を見事に当てました！`;
-  // ホストのみ「もう一度プレイする」ボタンを表示
-  const btn = document.querySelector("#mine-result-modal button");
-  if (btn) {
+
+  const buttonsEl = document.getElementById("mine-result-buttons");
+  if (buttonsEl) {
+    let html = `<button onclick="document.getElementById('mine-result-modal').classList.add('hidden')" class="bg-slate-600 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition">閉じる（盤面を見る）</button>`;
     if (lobbyIsHost) {
-      btn.style.display = "";
-      btn.textContent = "もう一度プレイする";
-    } else {
-      btn.style.display = "none";
-      const waitMsg = document.getElementById("mine-result-message");
-      const waitDiv = document.createElement("p");
-      waitDiv.id = "mine-guest-wait-msg";
-      waitDiv.style.cssText = "margin-top:12px;color:#888;font-size:14px;";
-      waitDiv.textContent = "⏳ ホストが次の問題を開始するまでお待ちください…";
-      if (!document.getElementById("mine-guest-wait-msg")) {
-        waitMsg.after(waitDiv);
-      }
+      html += `<button onclick="document.getElementById('mine-result-modal').classList.add('hidden'); mineInitGame();" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition">もう一度プレイする</button>`;
     }
+    buttonsEl.innerHTML = html;
   }
   document.getElementById("mine-result-modal").classList.remove("hidden");
+
+  const promptEl = document.getElementById("mine-action-prompt");
+  const controlsEl = document.getElementById("mine-action-controls");
+  if (promptEl && controlsEl) {
+    promptEl.innerHTML = `<span class="text-base">🏁</span> <span>ゲーム終了！ お題は「${correctWord}」でした。</span>`;
+    controlsEl.innerHTML = lobbyIsHost
+      ? `<button onclick="mineInitGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm shadow transition">もう一度プレイする</button>`
+      : `<span class="text-xs text-slate-400 italic">ホストが次の問題を開始するのを待っています…</span>`;
+  }
 }
 
 // ━━ ホスト受信（マインスイーパーゲーム中） ━━
@@ -757,6 +751,7 @@ function mineInitGame() {
   const cells = mineBuildCellsData(q.word);
   const guestList = Object.values(lobbyConns);
   const names = { 1: lobbyMyName, 2: guestList[0]?.name || "P2" };
+  const firstTurn = Math.random() < 0.5 ? 1 : 2;
   guestList.forEach((g) => {
     g.conn.send({
       type: "GAME_SELECTED",
@@ -766,8 +761,9 @@ function mineInitGame() {
       genre: q.genre,
       wordLength: q.word.length,
       cellsData: cells,
+      firstTurn: firstTurn,
     });
   });
-  mineHostStart(names, q, cells);
+  mineHostStart(names, q, cells, firstTurn);
 }
 
