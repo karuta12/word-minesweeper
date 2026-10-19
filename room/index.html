@@ -834,7 +834,7 @@
         <!-- 操作パネル -->
         <div
           id="mine-action-panel"
-          class="bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-2 h-24 sm:h-20 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-sm shrink-0 overflow-hidden"
+          class="bg-indigo-50/80 border border-indigo-100 rounded-xl px-3 py-1.5 min-h-[4rem] sm:min-h-0 flex flex-col sm:flex-row items-center justify-between gap-1.5 shadow-sm shrink-0 overflow-hidden"
         >
           <div
             id="mine-action-prompt"
@@ -863,7 +863,7 @@
             id="mine-p1-box"
             class="p-2.5 rounded-xl bg-indigo-50 border border-indigo-200 flex flex-col items-center justify-between gap-1.5"
           >
-            <div>
+            <div class="flex items-center gap-2">
               <span
                 id="mine-p1-display-name"
                 class="text-sm sm:text-base font-black"
@@ -871,7 +871,7 @@
               >
               <span
                 id="mine-p1-status"
-                class="block text-[10px] sm:text-xs font-normal text-slate-500"
+                class="text-[10px] sm:text-xs font-normal text-slate-500"
                 >通常</span
               >
             </div>
@@ -887,7 +887,7 @@
             id="mine-p2-box"
             class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col items-center justify-between gap-1.5 opacity-70"
           >
-            <div>
+            <div class="flex items-center gap-2">
               <span
                 id="mine-p2-display-name"
                 class="text-sm sm:text-base font-black"
@@ -895,7 +895,7 @@
               >
               <span
                 id="mine-p2-status"
-                class="block text-[10px] sm:text-xs font-normal text-slate-500"
+                class="text-[10px] sm:text-xs font-normal text-slate-500"
                 >通常</span
               >
             </div>
@@ -1303,11 +1303,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610130002"></script>
-    <script src="poker.js?v=202610130002"></script>
-    <script src="bingo.js?v=202610130002"></script>
-    <script src="mine.js?v=202610130002"></script>
-    <script src="mojipittan.js?v=202610130002"></script>
+    <script src="lobby.js?v=202610192347"></script>
+    <script src="poker.js?v=202610192347"></script>
+    <script src="bingo.js?v=202610192347"></script>
+    <script src="mine.js?v=202610192347"></script>
+    <script src="mojipittan.js?v=202610192347"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();
