@@ -147,7 +147,7 @@ function mineResumeHostState(state) {
   mineRenderWordSlots();
   mineUpdateUI();
   mineAddLog(`前回のゲーム状態を復元しました。（ターン: ${minePlayerNames[mineTurn]}）`);
-  mineStartTimer();
+  mineStartTimer(mineTimeLeft);
 }
 
 // ━━ CSV 読み込み（ホスト用） ━━
@@ -315,13 +315,17 @@ function mineGuestStart(data) {
   mineRenderWordSlots();
   mineUpdateUI();
   mineAddLog(`ゲームに復帰しました。（先攻/現在ターン: ${minePlayerNames[mineTurn]} / 文字数: ${data.wordLength}）`);
-  mineStartTimer();
+  mineStartTimer(mineTimeLeft);
 }
 
-// ━━ タイマー（クライアント側で毎秒計算、ホストは10秒ごと、またはターン交代時に同期） ━━
-function mineStartTimer() {
+// ━━ タイマー（クライアント側で毎秒計算、ホストは1秒ごとに同期） ━━
+function mineStartTimer(seconds) {
   mineStopTimer();
-  mineTimeLeft = MINE_TURN_TIME;
+  if (seconds !== undefined) {
+    mineTimeLeft = seconds;
+  } else {
+    mineTimeLeft = MINE_TURN_TIME;
+  }
   mineUpdateTimerDisplay();
   mineTimerInterval = setInterval(() => {
     if (mineTimeLeft > 0) {
@@ -329,7 +333,7 @@ function mineStartTimer() {
       mineUpdateTimerDisplay();
     }
     if (lobbyIsHost) {
-      // 毎秒ゲストへ時間を同期（タイマー自体はクライアント側で計算）
+      // ホストは毎秒ゲストへ時間を同期
       lobbyBroadcast({ type: "MINE_TIMER", timeLeft: mineTimeLeft });
       if (mineTimeLeft <= 0) mineHandleTimeout();
     }
@@ -820,8 +824,11 @@ function mineGuestReceive(data) {
     mineRenderWordSlots();
     mineUpdateUI();
   } else if (data.type === "MINE_TIMER") {
-    mineTimeLeft = data.timeLeft;
-    mineUpdateTimerDisplay();
+    // 1秒以内の微細なズレは無視して、表示のガタつき（戻り）を防ぐ
+    if (Math.abs(mineTimeLeft - data.timeLeft) > 1) {
+      mineTimeLeft = data.timeLeft;
+      mineUpdateTimerDisplay();
+    }
   } else if (data.type === "MINE_LOG") {
     mineAddLog(data.text);
   }
