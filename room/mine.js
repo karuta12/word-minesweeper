@@ -743,10 +743,22 @@ function mineProcessHint(num) {
     return;
   }
   const chosen = unrev[Math.floor(Math.random() * unrev.length)];
+  
+  // 同じ文字が複数ある場合、未開示のもの1つだけを開く
+  const unrevealed = [];
   for (let i = 0; i < word.length; i++) {
     const clean = MINE_DAKUTEN_MAP[word[i]] || word[i];
-    if (clean === chosen) mineRevealedPos[i] = word[i];
+    if (clean === chosen && !mineRevealedPos[i]) {
+      unrevealed.push(i);
+    }
   }
+  
+  if (unrevealed.length > 0) {
+    // 複数ある場合はランダムに1つだけ選ぶ
+    const idx = unrevealed[Math.floor(Math.random() * unrevealed.length)];
+    mineRevealedPos[idx] = word[idx];
+  }
+  
   if (num === 1) mineP1HintUsed = true;
   else mineP2HintUsed = true;
   let pattern = "";
