@@ -265,12 +265,12 @@ function mineBuildCellsData(word) {
 }
 
 function mineBuildCellsDataRandom(word) {
-  // 7×7グリッドにランダムに五十音を配置
+  // 7×7グリッドにランダムに五十音を配置（49マスに48文字配置、1マス空き）
   const KANA_LIST = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ",
     "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と",
     "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ",
     "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り",
-    "る", "れ", "ろ", "わ", "ん", "ー"];
+    "る", "れ", "ろ", "わ", "を", "ん", "ー"];  // 48文字（49マス中48個配置、1マス空き）
   
   const ROWS = 7, COLS = 7;
   const grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(""));
@@ -368,34 +368,18 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
     mineBoardLayout = lobbyGameOptions.mine_layout;
   }
 
-  // ランダムグリッド用：2マスをランダムに開く
-  if (mineBoardLayout === "random" && mineRandomGrid) {
-    const validCells = Object.keys(mineCellsData).filter(ch => !mineCellsData[ch].isOpen);
-    for (let i = 0; i < 2 && validCells.length > 0; i++) {
-      const idx = Math.floor(Math.random() * validCells.length);
-      const chosenChar = validCells[idx];
-      const data = mineCellsData[chosenChar];
-      data.isOpen = true;
-      validCells.splice(idx, 1);
-      if (data.bombs > 0) {
-        mineAddLog(`🎲 ランダムプリセット（${i+1}/2）：爆弾「${chosenChar}」（${data.bombs}個分）を先制開放`, true);
-      } else {
-        mineAddLog(`🎲 ランダムプリセット（${i+1}/2）：「${chosenChar}」（周囲爆弾数: ${data.neighborBombs}）を先制開放`, true);
-      }
-    }
-  }
-  // 通常グリッド用：先攻前に1個ランダムに空ける
-  else if (minePreRevealMode) {
+  // プリセット開放：オプションで1個ランダムに空ける
+  if (minePreRevealMode) {
     const validCells = Object.keys(mineCellsData).filter(ch => !mineCellsData[ch].isOpen);
     if (validCells.length > 0) {
-      const chosenChar = validCells[Math.floor(Math.random() * validCells.length)];
-      const data = mineCellsData[chosenChar];
+      const chosenKey = validCells[Math.floor(Math.random() * validCells.length)];
+      const data = mineCellsData[chosenKey];
       data.isOpen = true;
       // 連鎖展開なし：neighborBombs=0でも隣は開かない
       if (data.bombs > 0) {
-        mineAddLog(`🎲 プリセット：爆弾「${chosenChar}」（${data.bombs}個分）を先制開放`, true);
+        mineAddLog(`🎲 プリセット：爆弾「${data.char}」（${data.bombs}個分）を先制開放`, true);
       } else {
-        mineAddLog(`🎲 プリセット：「${chosenChar}」（周囲爆弾数: ${data.neighborBombs}）を先制開放`, true);
+        mineAddLog(`🎲 プリセット：「${data.char}」（周囲爆弾数: ${data.neighborBombs}）を先制開放`, true);
       }
     }
   }
@@ -446,6 +430,7 @@ function mineGuestStart(data) {
   minePreRevealMode = data.preRevealMode || false;
   mineBoardLayout = data.boardLayout || "fixed";
   mineRandomGrid = data.randomGrid || null;
+  mineRandomCharToPos = null; // 古いグリッド情報をクリア
   if (data.timeLeft !== undefined) {
     mineTimeLeft = data.timeLeft;
   }
@@ -531,7 +516,7 @@ function mineRenderBoard() {
   
   if (mineBoardLayout === "random" && mineRandomGrid) {
     // ランダムグリッド表示（7×7）
-    boardEl.className = "grid gap-1 sm:gap-1.5 w-full select-none";
+    boardEl.className = "grid gap-0.5 sm:gap-1 w-full select-none max-w-sm sm:max-w-md mx-auto";
     boardEl.style.gridTemplateColumns = "repeat(7, 1fr)";
     
     for (let r = 0; r < mineRandomGrid.length; r++) {
@@ -561,12 +546,12 @@ function mineRenderBoard() {
             data.bombs > 0
               ? "bg-rose-500 text-white border-rose-600 shadow-inner"
               : "bg-slate-200 text-slate-700 border-slate-300";
-        div.className = `w-full aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bg}`;
+        div.className = `w-full aspect-square rounded-md sm:rounded-lg flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bg}`;
         if (data.isOpen) {
           if (data.bombs > 0) {
             div.innerHTML = `<span class="text-[9px] sm:text-xs font-black">${data.bombs > 1 ? `💣×${data.bombs}` : "💣"}</span><span class="text-[10px] sm:text-xs font-black">${char}</span>`;
           } else {
-            div.innerHTML = `<span>${char}</span><span class="text-[10px] sm:text-xs text-indigo-600 font-black">${data.neighborBombs || ""}</span>`;
+            div.innerHTML = `<span class="text-[10px] sm:text-xs">${char}</span><span class="text-[8px] sm:text-[9px] text-indigo-600 font-black">${data.neighborBombs || ""}</span>`;
           }
         } else {
           div.innerHTML = `<span>${char}</span>`;
