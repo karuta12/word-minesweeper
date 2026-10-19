@@ -10,6 +10,11 @@ let lobbyIsHost = false;
 let lobbyRoomName = "";
 let lobbyLang = "ja"; // ポーカー用言語
 
+// ゲームオプション
+let lobbyGameOptions = {
+  mine_prereveal: false, // マインスイーパー：先攻前に1個開く
+};
+
 // ── 言語選択（ポーカー用、ホストのみ） ──
 function lobbySelectLang(l) {
   lobbyLang = l;
@@ -19,6 +24,17 @@ function lobbySelectLang(l) {
   document
     .getElementById("lobby-btn-en")
     .classList.toggle("active", l === "en");
+}
+
+// ── ゲームオプション更新（ホストのみ） ──
+function lobbyUpdateMineOptions() {
+  if (!lobbyIsHost) return;
+  const checkbox = document.getElementById("lobby-option-mine-prereveal");
+  if (checkbox) {
+    lobbyGameOptions.mine_prereveal = checkbox.checked;
+    // mine.js に反映
+    minePreRevealMode = checkbox.checked;
+  }
 }
 
 // ── 参加者リスト表示 ──
@@ -281,6 +297,7 @@ function lobbySelectGame(game) {
         wordLength: question.word.length,
         cellsData: cellsData,
         firstTurn: firstTurn,
+        preRevealMode: lobbyGameOptions.mine_prereveal,
       });
     });
     mineHostStart(mineNames, question, cellsData, firstTurn);

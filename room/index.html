@@ -462,6 +462,23 @@
           </button>
         </div>
 
+        <!-- ゲームオプション -->
+        <div
+          id="lobby-options-section"
+          style="margin-bottom: 16px; padding: 12px; background: #f0f0f0; border-radius: 8px; font-size: 13px; color: #333"
+        >
+          <strong style="display: block; margin-bottom: 8px">⚙️ ゲームオプション:</strong>
+          <label style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer">
+            <input
+              type="checkbox"
+              id="lobby-option-mine-prereveal"
+              onchange="lobbyUpdateMineOptions()"
+              style="margin-right: 8px; cursor: pointer"
+            />
+            <span>マインスイーパー：先攻前に1個開く</span>
+          </label>
+        </div>
+
         <div
           style="
             display: flex;
@@ -1303,11 +1320,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610192347"></script>
-    <script src="poker.js?v=202610192347"></script>
-    <script src="bingo.js?v=202610192347"></script>
-    <script src="mine.js?v=202610192347"></script>
-    <script src="mojipittan.js?v=202610192347"></script>
+    <script src="lobby.js?v=202610192357"></script>
+    <script src="poker.js?v=202610192357"></script>
+    <script src="bingo.js?v=202610192357"></script>
+    <script src="mine.js?v=202610192357"></script>
+    <script src="mojipittan.js?v=202610192357"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();

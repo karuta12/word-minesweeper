@@ -65,6 +65,7 @@ let minePlayerNames = { 1: "プレイヤー1", 2: "プレイヤー2" };
 let mineMyPlayerNum = 1; // 自分は P1(1) か P2(2) か
 let mineWordLength = 0; // ゲスト用：答えの文字数
 let mineGenre = ""; // ゲスト用：ジャンル
+let minePreRevealMode = false; // ゲーム開始前に1個空ける機能を有効にするか
 
 const MINE_TURN_TIME = 180;
 let mineTimeLeft = MINE_TURN_TIME;
@@ -92,6 +93,7 @@ function mineSaveState() {
     timeLeft: mineTimeLeft,
     genre: mineGenre,
     wordLength: mineWordLength,
+    preRevealMode: minePreRevealMode,
   };
   try {
     localStorage.setItem(MINE_STORAGE_KEY, JSON.stringify(state));
@@ -135,6 +137,7 @@ function mineResumeHostState(state) {
   mineRevealedPos = state.revealedPos;
   mineCanAnswer = state.canAnswer;
   mineTimeLeft = state.timeLeft || MINE_TURN_TIME;
+  minePreRevealMode = state.preRevealMode || false;
 
   document.getElementById("mine-genre-badge").textContent =
     `ジャンル: ${state.question.genre}`;
@@ -269,6 +272,26 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
   mineP2HintUsed = false;
   mineRevealedPos = {};
   mineCanAnswer = { 1: true, 2: true };
+  // ロビーのオプションを反映
+  if (typeof lobbyGameOptions !== "undefined") {
+    minePreRevealMode = lobbyGameOptions.mine_prereveal;
+  }
+
+  // オプション：先攻前に1個ランダムに空ける
+  if (minePreRevealMode) {
+    const validCells = Object.keys(mineCellsData).filter(ch => !mineCellsData[ch].isOpen);
+    if (validCells.length > 0) {
+      const chosenChar = validCells[Math.floor(Math.random() * validCells.length)];
+      const data = mineCellsData[chosenChar];
+      data.isOpen = true;
+      // 連鎖展開なし：neighborBombs=0でも隣は開かない
+      if (data.bombs > 0) {
+        mineAddLog(`🎲 プリセット：爆弾「${chosenChar}」（${data.bombs}個分）を先制開放`, true);
+      } else {
+        mineAddLog(`🎲 プリセット：「${chosenChar}」（周囲爆弾数: ${data.neighborBombs}）を先制開放`, true);
+      }
+    }
+  }
 
   document.getElementById("mine-genre-badge").textContent =
     `ジャンル: ${question.genre}`;
@@ -300,6 +323,7 @@ function mineGuestStart(data) {
   mineP2HintUsed = data.p2HintUsed || false;
   mineRevealedPos = data.revealedPos || {};
   mineCanAnswer = data.canAnswer || { 1: true, 2: true };
+  minePreRevealMode = data.preRevealMode || false;
   if (data.timeLeft !== undefined) {
     mineTimeLeft = data.timeLeft;
   }
@@ -853,6 +877,7 @@ function mineInitGame() {
       wordLength: q.word.length,
       cellsData: cells,
       firstTurn: firstTurn,
+      preRevealMode: minePreRevealMode,
     });
   });
   mineHostStart(names, q, cells, firstTurn);
