@@ -413,6 +413,19 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
   mineAddLog(`新しい問題が開始されました。（先攻: ${minePlayerNames[mineTurn]} / 文字数: ${question.word.length}）`);
   mineStartTimer();
   mineSaveState();
+
+  // ゲストに開かれたセルの状態を送信
+  if (lobbyIsHost) {
+    const openedCells = Object.keys(mineCellsData).filter(key => mineCellsData[key].isOpen);
+    if (openedCells.length > 0) {
+      Object.values(lobbyConns).forEach((guest) => {
+        guest.conn.send({
+          type: "MINE_PRESET_OPEN",
+          openedCells: openedCells,
+        });
+      });
+    }
+  }
 }
 
 // ━━ ゲーム開始（ゲスト） ━━
@@ -1037,7 +1050,15 @@ function mineHostReceive(peerId, data) {
 
 // ━━ ゲスト受信（マインスイーパーゲーム中） ━━
 function mineGuestReceive(data) {
-  if (data.type === "MINE_CELL_OPENED") {
+  if (data.type === "MINE_PRESET_OPEN") {
+    // ホストが開いたプリセットセルをゲストに反映
+    data.openedCells.forEach((key) => {
+      if (mineCellsData[key]) {
+        mineCellsData[key].isOpen = true;
+      }
+    });
+    mineRenderBoard();
+  } else if (data.type === "MINE_CELL_OPENED") {
     mineCellsData = data.cellsData;
     mineSkipped = data.skipped || null;
     mineRenderBoard();

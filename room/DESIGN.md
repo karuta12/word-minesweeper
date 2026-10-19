@@ -1,6 +1,6 @@
 # ゲームロビー 設計ドキュメント
 
-> 最終更新: 2026-10-18
+> 最終更新: 2026-10-20
 
 ---
 
@@ -113,6 +113,7 @@ type: "GIVE_NAME"          → ホスト: 参加者名を記録
 type: "GAME_SELECTED"      → ゲスト: 各ゲームの GuestStart へ
 type: "BINGO_WORD"         → bingoHostReceive / bingoGuestReceive
 type: "BINGO_WIN"          → bingoGuestReceive
+type: "MINE_PRESET_OPEN"   → mineGuestReceive
 type: "MINE_OPEN"          → mineHostReceive
 type: "MINE_GUESS"         → mineHostReceive
 type: "MINE_HINT_REQUEST"  → mineHostReceive
@@ -121,6 +122,7 @@ type: "MINE_TURN_CHANGE"   → mineGuestReceive
 type: "MINE_GUESS_RESULT"  → mineGuestReceive
 type: "MINE_HINT_REVEAL"   → mineGuestReceive
 type: "MINE_TIMER"         → mineGuestReceive
+type: "MINE_LOG"           → mineGuestReceive
 type: "EXCHANGE_DONE"      → pokerHostReceive
 type: "SCORE"              → pokerHostReceive
 type: "REMATCH_REQUEST"    → pokerHostReceive
@@ -234,6 +236,10 @@ DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり
 五十音表をボードにしたマインスイーパー型ワード推理ゲーム（2人対戦）。  
 爆弾マス（答えの文字を含むマス）を手がかりに、お題のワードを当てる。
 
+2つのボードレイアウトに対応：
+- **固定レイアウト** (`mine_layout: "fixed"`): 五十音表の標準10×5配置
+- **ランダムレイアウト** (`mine_layout: "random"`): 7×7グリッドに五十音を無作為配置
+
 ### ゲームフロー
 
 ```
@@ -263,6 +269,7 @@ DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり
 
 ### セルデータ構造
 
+**固定レイアウト** (`mine_layout: "fixed"`)：
 ```js
 cells[char] = {
   char: "あ",            // 五十音の文字
@@ -270,6 +277,23 @@ cells[char] = {
   bombs: number,         // この文字がお題に含まれる回数（爆弾数）
   neighborBombs: number  // 隣接8マスの爆弾総数
 }
+```
+
+**ランダムレイアウト** (`mine_layout: "random"`)：
+```js
+cells[posKey] = {  // posKey = "row,col"（例: "0,0", "3,4"）
+  char: "あ",            // その位置に配置された五十音の文字
+  isOpen: boolean,       // 開いているか
+  bombs: number,         // この文字がお題に含まれる回数（爆弾数）
+  neighborBombs: number, // 隣接8マスの爆弾総数
+  row: number,           // 行番号（0〜6）
+  col: number            // 列番号（0〜6）
+}
+```
+
+ランダムレイアウト用に別途：
+```js
+mineRandomGrid[r][c]  // 7×7 グリッド配列（各要素は文字または空文字列）
 ```
 
 ### 連鎖展開ロジック
@@ -306,8 +330,9 @@ mineRevealNeighbors(char)
 
 | type | 方向 | 内容 |
 |------|------|------|
-| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData, firstTurn }` |
-| `MINE_OPEN` | ゲスト→ホスト | `{ char }` 開けたいマス |
+| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData, firstTurn, preRevealMode, boardLayout, randomGrid }` |
+| `MINE_PRESET_OPEN` | ホスト→ゲスト | `{ openedCells: [key1, key2, ...] }` ゲーム開始時の自動開放セル情報 |
+| `MINE_OPEN` | ゲスト→ホスト | `{ char }` または `{ key }` 開けたいマス |
 | `MINE_CELL_OPENED` | ホスト→全員 | `{ cellsData, skipped }` 更新後の盤面 |
 | `MINE_TURN_CHANGE` | ホスト→全員 | `{ turn, skipped }` ターン変更 |
 | `MINE_GUESS` | ゲスト→ホスト | `{ answer }` ワード回答 |

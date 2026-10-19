@@ -253,6 +253,7 @@ function lobbyGuestReceive(data) {
   } else if (data.type === "BINGO_WORD" || data.type === "BINGO_WIN") {
     bingoGuestReceive(data);
   } else if (
+    data.type === "MINE_PRESET_OPEN" ||
     data.type === "MINE_CELL_OPENED" || data.type === "MINE_TURN_CHANGE" ||
     data.type === "MINE_GUESS_RESULT" || data.type === "MINE_HINT_REVEAL" ||
     data.type === "MINE_TIMER" || data.type === "MINE_LOG"
