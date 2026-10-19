@@ -13,6 +13,7 @@ let lobbyLang = "ja"; // ポーカー用言語
 // ゲームオプション
 let lobbyGameOptions = {
   mine_prereveal: false, // マインスイーパー：先攻前に1個開く
+  mine_layout: "fixed", // マインスイーパー配置："fixed" or "random"
 };
 
 // ── 言語選択（ポーカー用、ホストのみ） ──
@@ -32,8 +33,13 @@ function lobbyUpdateMineOptions() {
   const checkbox = document.getElementById("lobby-option-mine-prereveal");
   if (checkbox) {
     lobbyGameOptions.mine_prereveal = checkbox.checked;
-    // mine.js に反映
     minePreRevealMode = checkbox.checked;
+  }
+  
+  const layoutRadio = document.querySelector('input[name="lobby-option-mine-layout"]:checked');
+  if (layoutRadio) {
+    lobbyGameOptions.mine_layout = layoutRadio.value;
+    mineBoardLayout = layoutRadio.value;
   }
 }
 
@@ -285,7 +291,17 @@ function lobbySelectGame(game) {
     if (playerCount < 2) return alert("マインスイーパーは2人以上必要です");
     const mineNames = { 1: lobbyMyName, 2: guestList[0].name };
     const question = minePickQuestion();
-    const cellsData = mineBuildCellsData(question.word);
+    
+    let cellsData;
+    let randomGrid = null;
+    if (lobbyGameOptions.mine_layout === "random") {
+      const result = mineBuildCellsDataRandom(question.word);
+      cellsData = result.cells;
+      randomGrid = result.grid;
+    } else {
+      cellsData = mineBuildCellsData(question.word);
+    }
+    
     const firstTurn = Math.random() < 0.5 ? 1 : 2;
     guestList.forEach((g) => {
       g.conn.send({
@@ -298,6 +314,8 @@ function lobbySelectGame(game) {
         cellsData: cellsData,
         firstTurn: firstTurn,
         preRevealMode: lobbyGameOptions.mine_prereveal,
+        boardLayout: lobbyGameOptions.mine_layout,
+        randomGrid: randomGrid,
       });
     });
     mineHostStart(mineNames, question, cellsData, firstTurn);

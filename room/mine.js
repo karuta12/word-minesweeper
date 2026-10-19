@@ -66,6 +66,7 @@ let mineMyPlayerNum = 1; // 自分は P1(1) か P2(2) か
 let mineWordLength = 0; // ゲスト用：答えの文字数
 let mineGenre = ""; // ゲスト用：ジャンル
 let minePreRevealMode = false; // ゲーム開始前に1個空ける機能を有効にするか
+let mineBoardLayout = "fixed"; // ボード配置："fixed" (10×5) or "random" (7×7)
 
 const MINE_TURN_TIME = 180;
 let mineTimeLeft = MINE_TURN_TIME;
@@ -74,6 +75,8 @@ let mineTimerInterval = null;
 let mineP1HintUsed = false;
 let mineP2HintUsed = false;
 let mineRevealedPos = {};
+let mineRandomGrid = null; // ランダムグリッド（7×7）用
+let mineRandomCharToPos = null; // ランダムグリッド用：文字から位置へのマッピング
 
 const MINE_STORAGE_KEY = "word_minesweeper_host_state";
 
@@ -94,6 +97,8 @@ function mineSaveState() {
     genre: mineGenre,
     wordLength: mineWordLength,
     preRevealMode: minePreRevealMode,
+    boardLayout: mineBoardLayout,
+    randomGrid: mineRandomGrid,
   };
   try {
     localStorage.setItem(MINE_STORAGE_KEY, JSON.stringify(state));
@@ -138,6 +143,8 @@ function mineResumeHostState(state) {
   mineCanAnswer = state.canAnswer;
   mineTimeLeft = state.timeLeft || MINE_TURN_TIME;
   minePreRevealMode = state.preRevealMode || false;
+  mineBoardLayout = state.boardLayout || "fixed";
+  mineRandomGrid = state.randomGrid || null;
 
   document.getElementById("mine-genre-badge").textContent =
     `ジャンル: ${state.question.genre}`;
@@ -257,6 +264,89 @@ function mineBuildCellsData(word) {
   return cells;
 }
 
+function mineBuildCellsDataRandom(word) {
+  // 7×7グリッドにランダムに五十音を配置
+  const KANA_LIST = ["あ", "い", "う", "え", "お", "か", "き", "く", "け", "こ",
+    "さ", "し", "す", "せ", "そ", "た", "ち", "つ", "て", "と",
+    "な", "に", "ぬ", "ね", "の", "は", "ひ", "ふ", "へ", "ほ",
+    "ま", "み", "む", "め", "も", "や", "ゆ", "よ", "ら", "り",
+    "る", "れ", "ろ", "わ", "ん", "ー"];
+  
+  const ROWS = 7, COLS = 7;
+  const grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(""));
+  
+  // ランダムに文字を配置
+  const usedPositions = new Set();
+  for (const kana of KANA_LIST) {
+    let placed = false;
+    while (!placed) {
+      const r = Math.floor(Math.random() * ROWS);
+      const c = Math.floor(Math.random() * COLS);
+      const key = `${r},${c}`;
+      if (!usedPositions.has(key)) {
+        grid[r][c] = kana;
+        usedPositions.add(key);
+        placed = true;
+      }
+    }
+  }
+  
+  // セルデータを構築（キーは位置 "r,c" を使う）
+  const cells = {};
+  const bombCounts = mineExtractBombCounts(word);
+  const charToPositions = {}; // 文字ごとの位置を記録
+  
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const char = grid[r][c];
+      if (char) {
+        const key = `${r},${c}`;
+        cells[key] = { 
+          char, 
+          isOpen: false, 
+          bombs: bombCounts[char] || 0, 
+          neighborBombs: 0, 
+          row: r, 
+          col: c 
+        };
+        if (!charToPositions[char]) {
+          charToPositions[char] = [];
+        }
+        charToPositions[char].push(key);
+      }
+    }
+  }
+  
+  // 隣接爆弾数計算
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const char = grid[r][c];
+      if (!char) continue;
+      const key = `${r},${c}`;
+      let total = 0;
+      for (let dr = -1; dr <= 1; dr++)
+        for (let dc = -1; dc <= 1; dc++) {
+          if (!dr && !dc) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+            const n2 = grid[nr][nc];
+            if (n2) {
+              const neighborKey = `${nr},${nc}`;
+              if (cells[neighborKey]) total += cells[neighborKey].bombs;
+            }
+          }
+        }
+      cells[key].neighborBombs = total;
+    }
+  }
+  
+  // グリッドとcharToPositionsも保存（参照用）
+  mineRandomGrid = grid;
+  mineRandomCharToPos = charToPositions;
+  
+  return { cells, grid, charToPositions };
+}
+
 // ━━ ゲーム開始（ホスト） ━━
 function mineHostStart(names, question, cellsData, firstTurn = 1) {
   mineMyPlayerNum = 1;
@@ -275,10 +365,27 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
   // ロビーのオプションを反映
   if (typeof lobbyGameOptions !== "undefined") {
     minePreRevealMode = lobbyGameOptions.mine_prereveal;
+    mineBoardLayout = lobbyGameOptions.mine_layout;
   }
 
-  // オプション：先攻前に1個ランダムに空ける
-  if (minePreRevealMode) {
+  // ランダムグリッド用：2マスをランダムに開く
+  if (mineBoardLayout === "random" && mineRandomGrid) {
+    const validCells = Object.keys(mineCellsData).filter(ch => !mineCellsData[ch].isOpen);
+    for (let i = 0; i < 2 && validCells.length > 0; i++) {
+      const idx = Math.floor(Math.random() * validCells.length);
+      const chosenChar = validCells[idx];
+      const data = mineCellsData[chosenChar];
+      data.isOpen = true;
+      validCells.splice(idx, 1);
+      if (data.bombs > 0) {
+        mineAddLog(`🎲 ランダムプリセット（${i+1}/2）：爆弾「${chosenChar}」（${data.bombs}個分）を先制開放`, true);
+      } else {
+        mineAddLog(`🎲 ランダムプリセット（${i+1}/2）：「${chosenChar}」（周囲爆弾数: ${data.neighborBombs}）を先制開放`, true);
+      }
+    }
+  }
+  // 通常グリッド用：先攻前に1個ランダムに空ける
+  else if (minePreRevealMode) {
     const validCells = Object.keys(mineCellsData).filter(ch => !mineCellsData[ch].isOpen);
     if (validCells.length > 0) {
       const chosenChar = validCells[Math.floor(Math.random() * validCells.length)];
@@ -324,6 +431,8 @@ function mineGuestStart(data) {
   mineRevealedPos = data.revealedPos || {};
   mineCanAnswer = data.canAnswer || { 1: true, 2: true };
   minePreRevealMode = data.preRevealMode || false;
+  mineBoardLayout = data.boardLayout || "fixed";
+  mineRandomGrid = data.randomGrid || null;
   if (data.timeLeft !== undefined) {
     mineTimeLeft = data.timeLeft;
   }
@@ -403,36 +512,96 @@ function mineRenderBoard() {
   const boardEl = document.getElementById("mine-board");
   if (!boardEl) return;
   boardEl.innerHTML = "";
-  MINE_KANA_GRID.forEach((row) =>
-    row.forEach((char) => {
-      const div = document.createElement("div");
-      if (!char) {
-        div.className = "w-full aspect-square";
-        boardEl.appendChild(div);
-        return;
-      }
-      const data = mineCellsData[char];
-      let bg =
-        "bg-white hover:bg-indigo-50 text-indigo-900 border-indigo-200 cursor-pointer";
-      if (data.isOpen)
-        bg =
-          data.bombs > 0
-            ? "bg-rose-500 text-white border-rose-600 shadow-inner"
-            : "bg-slate-200 text-slate-700 border-slate-300";
-      div.className = `w-full aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bg}`;
-      if (data.isOpen) {
-        if (data.bombs > 0) {
-          div.innerHTML = `<span class="text-[9px] sm:text-xs font-black">${data.bombs > 1 ? `💣×${data.bombs}` : "💣"}</span><span class="text-[10px] sm:text-xs font-black">${char}</span>`;
-        } else {
-          div.innerHTML = `<span>${char}</span><span class="text-[10px] sm:text-xs text-indigo-600 font-black">${data.neighborBombs || ""}</span>`;
+  
+  // デバッグ用
+  console.log("mineRenderBoard called. Layout:", mineBoardLayout, "HasRandomGrid:", !!mineRandomGrid, "CellsDataKeys:", Object.keys(mineCellsData).slice(0, 5));
+  
+  if (mineBoardLayout === "random" && mineRandomGrid) {
+    // ランダムグリッド表示（7×7）
+    boardEl.className = "grid gap-1 sm:gap-1.5 w-full select-none";
+    boardEl.style.gridTemplateColumns = "repeat(7, 1fr)";
+    
+    for (let r = 0; r < mineRandomGrid.length; r++) {
+      for (let c = 0; c < mineRandomGrid[r].length; c++) {
+        const char = mineRandomGrid[r][c];
+        const key = `${r},${c}`;
+        const div = document.createElement("div");
+        
+        if (!char) {
+          div.className = "w-full aspect-square";
+          boardEl.appendChild(div);
+          continue;
         }
-      } else {
-        div.innerHTML = `<span>${char}</span>`;
-        div.onclick = () => mineHandleCellClick(char);
+        
+        const data = mineCellsData[key];
+        if (!data) {
+          console.warn(`Cell data not found for key: ${key}`);
+          div.className = "w-full aspect-square";
+          boardEl.appendChild(div);
+          continue;
+        }
+        
+        let bg =
+          "bg-white hover:bg-indigo-50 text-indigo-900 border-indigo-200 cursor-pointer";
+        if (data.isOpen)
+          bg =
+            data.bombs > 0
+              ? "bg-rose-500 text-white border-rose-600 shadow-inner"
+              : "bg-slate-200 text-slate-700 border-slate-300";
+        div.className = `w-full aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bg}`;
+        if (data.isOpen) {
+          if (data.bombs > 0) {
+            div.innerHTML = `<span class="text-[9px] sm:text-xs font-black">${data.bombs > 1 ? `💣×${data.bombs}` : "💣"}</span><span class="text-[10px] sm:text-xs font-black">${char}</span>`;
+          } else {
+            div.innerHTML = `<span>${char}</span><span class="text-[10px] sm:text-xs text-indigo-600 font-black">${data.neighborBombs || ""}</span>`;
+          }
+        } else {
+          div.innerHTML = `<span>${char}</span>`;
+          div.onclick = () => mineHandleCellClickRandom(key, char);
+        }
+        boardEl.appendChild(div);
       }
-      boardEl.appendChild(div);
-    }),
-  );
+    }
+  } else {
+    // 通常グリッド表示（10×5）
+    boardEl.className = "grid grid-cols-10 gap-1 sm:gap-1.5 w-full select-none";
+    MINE_KANA_GRID.forEach((row) =>
+      row.forEach((char) => {
+        const div = document.createElement("div");
+        if (!char) {
+          div.className = "w-full aspect-square";
+          boardEl.appendChild(div);
+          return;
+        }
+        const data = mineCellsData[char];
+        if (!data) {
+          console.warn(`Cell data not found for char: ${char}`);
+          div.className = "w-full aspect-square";
+          boardEl.appendChild(div);
+          return;
+        }
+        let bg =
+          "bg-white hover:bg-indigo-50 text-indigo-900 border-indigo-200 cursor-pointer";
+        if (data.isOpen)
+          bg =
+            data.bombs > 0
+              ? "bg-rose-500 text-white border-rose-600 shadow-inner"
+              : "bg-slate-200 text-slate-700 border-slate-300";
+        div.className = `w-full aspect-square rounded-lg sm:rounded-xl flex flex-col items-center justify-center font-bold text-xs sm:text-base transition select-none shadow-sm border ${bg}`;
+        if (data.isOpen) {
+          if (data.bombs > 0) {
+            div.innerHTML = `<span class="text-[9px] sm:text-xs font-black">${data.bombs > 1 ? `💣×${data.bombs}` : "💣"}</span><span class="text-[10px] sm:text-xs font-black">${char}</span>`;
+          } else {
+            div.innerHTML = `<span>${char}</span><span class="text-[10px] sm:text-xs text-indigo-600 font-black">${data.neighborBombs || ""}</span>`;
+          }
+        } else {
+          div.innerHTML = `<span>${char}</span>`;
+          div.onclick = () => mineHandleCellClick(char);
+        }
+        boardEl.appendChild(div);
+      }),
+    );
+  }
 }
 
 // ━━ スロット表示 ━━
@@ -573,6 +742,17 @@ function mineHandleCellClick(char) {
   }
 }
 
+function mineHandleCellClickRandom(key, char) {
+  if ((minePhase !== "open" && minePhase !== "choose") || mineTurn !== mineMyPlayerNum) return;
+  minePhase = "choose";
+  if (lobbyIsHost) {
+    mineProcessCellOpenRandom(key, char);
+  } else {
+    lobbyHostConn.send({ type: "MINE_OPEN", key, char });
+    mineUpdateUI();
+  }
+}
+
 function mineProcessCellOpen(char) {
   const data = mineCellsData[char];
   if (!data || data.isOpen) return;
@@ -594,6 +774,30 @@ function mineProcessCellOpen(char) {
         `${minePlayerNames[mineTurn]}が「${char}」を開いた（周囲爆弾数: ${data.neighborBombs}）`,
       );
     }
+  }
+  // ホストが全員に盤面を送信
+  lobbyBroadcast({
+    type: "MINE_CELL_OPENED",
+    cellsData: mineCellsData,
+    skipped: mineSkipped,
+  });
+  mineRenderBoard();
+  mineEndTurn();
+}
+
+function mineProcessCellOpenRandom(key, char) {
+  const data = mineCellsData[key];
+  if (!data || data.isOpen) return;
+  data.isOpen = true;
+  if (data.bombs > 0) {
+    mineAddLog(
+      `${minePlayerNames[mineTurn]}が爆弾（${char}・${data.bombs}個分）を踏んだ！ 1回休み！`,
+    );
+    mineSkipped = mineTurn;
+  } else {
+    mineAddLog(
+      `${minePlayerNames[mineTurn]}が「${char}」を開いた（周囲爆弾数: ${data.neighborBombs}）`,
+    );
   }
   // ホストが全員に盤面を送信
   lobbyBroadcast({
@@ -817,7 +1021,13 @@ function mineTriggerVictory(winner, word) {
 // ━━ ホスト受信（マインスイーパーゲーム中） ━━
 function mineHostReceive(peerId, data) {
   if (data.type === "MINE_OPEN") {
-    mineProcessCellOpen(data.char);
+    if (data.key) {
+      // ランダムグリッド用
+      mineProcessCellOpenRandom(data.key, data.char);
+    } else {
+      // 固定グリッド用
+      mineProcessCellOpen(data.char);
+    }
   } else if (data.type === "MINE_GUESS") {
     mineJudgeAnswer(data.answer, data.playerNum || 2);
   } else if (data.type === "MINE_HINT_REQUEST") {
@@ -874,8 +1084,18 @@ function mineGuestReceive(data) {
 function mineInitGame() {
   if (!lobbyIsHost) return;
   mineClearState();
+  mineRandomGrid = null;
   const q = minePickQuestion();
-  const cells = mineBuildCellsData(q.word);
+  
+  let cells;
+  if (lobbyGameOptions.mine_layout === "random") {
+    const result = mineBuildCellsDataRandom(q.word);
+    cells = result.cells;
+    mineRandomGrid = result.grid;
+  } else {
+    cells = mineBuildCellsData(q.word);
+  }
+  
   const guestList = Object.values(lobbyConns);
   const names = { 1: lobbyMyName, 2: guestList[0]?.name || "P2" };
   const firstTurn = Math.random() < 0.5 ? 1 : 2;
@@ -889,7 +1109,9 @@ function mineInitGame() {
       wordLength: q.word.length,
       cellsData: cells,
       firstTurn: firstTurn,
-      preRevealMode: minePreRevealMode,
+      preRevealMode: lobbyGameOptions.mine_prereveal,
+      boardLayout: lobbyGameOptions.mine_layout,
+      randomGrid: mineRandomGrid,
     });
   });
   mineHostStart(names, q, cells, firstTurn);

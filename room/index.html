@@ -477,6 +477,27 @@
             />
             <span>マインスイーパー：先攻前に1個開く</span>
           </label>
+          <label style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer">
+            <input
+              type="radio"
+              name="lobby-option-mine-layout"
+              value="fixed"
+              checked
+              onchange="lobbyUpdateMineOptions()"
+              style="margin-right: 8px; cursor: pointer"
+            />
+            <span>マインスイーパー：五十音表固定配置</span>
+          </label>
+          <label style="display: flex; align-items: center; cursor: pointer">
+            <input
+              type="radio"
+              name="lobby-option-mine-layout"
+              value="random"
+              onchange="lobbyUpdateMineOptions()"
+              style="margin-right: 8px; cursor: pointer"
+            />
+            <span>マインスイーパー：7×7ランダム配置（2マス開放）</span>
+          </label>
         </div>
 
         <div
@@ -753,6 +774,7 @@
         onclick="
           showScreen('lobby-screen');
           mineStopTimer();
+          mineClearState();
         "
       >
         ← ロビーへ
@@ -1320,11 +1342,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202610192359"></script>
-    <script src="poker.js?v=202610192359"></script>
-    <script src="bingo.js?v=202610192359"></script>
-    <script src="mine.js?v=202610192359"></script>
-    <script src="mojipittan.js?v=202610192359"></script>
+    <script src="lobby.js?v=202610200013"></script>
+    <script src="poker.js?v=202610200013"></script>
+    <script src="bingo.js?v=202610200013"></script>
+    <script src="mine.js?v=202610200013"></script>
+    <script src="mojipittan.js?v=202610200013"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();
