@@ -161,6 +161,11 @@ function mineResumeHostState(state) {
 }
 
 // ━━ CSV 読み込み（ホスト用） ━━
+
+// GoogleスプレッドシートCSVエクスポートURL
+const MINE_SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/1kKZILlS1Sw4ia0bRAlmV5KbwTIWpnFRDXhlP3z80B28/export?format=csv&gid=0";
+
 function mineParseCSV(text) {
   return text
     .trim()
@@ -178,18 +183,34 @@ function mineParseCSV(text) {
 }
 
 async function mineInit() {
+  // 1. Googleスプレッドシートから取得
+  try {
+    const res = await fetch(MINE_SHEET_CSV_URL);
+    if (res.ok) {
+      const loaded = mineParseCSV(await res.text());
+      if (loaded.length > 0) {
+        mineQuestionsDB = loaded;
+        return;
+      }
+    }
+  } catch {
+    // ネットワークエラー等は無視してフォールバックへ
+  }
+  // 2. ローカル word.csv から取得
   try {
     const res = await fetch("word.csv");
     if (res.ok) {
       const loaded = mineParseCSV(await res.text());
-      mineQuestionsDB =
-        loaded.length > 0 ? loaded : mineParseCSV(MINE_DEFAULT_CSV);
-    } else {
-      mineQuestionsDB = mineParseCSV(MINE_DEFAULT_CSV);
+      if (loaded.length > 0) {
+        mineQuestionsDB = loaded;
+        return;
+      }
     }
   } catch {
-    mineQuestionsDB = mineParseCSV(MINE_DEFAULT_CSV);
+    // 无视
   }
+  // 3. 内蔵デフォルトCSV
+  mineQuestionsDB = mineParseCSV(MINE_DEFAULT_CSV);
 }
 
 function mineHandleCSVFileSelect(event) {
