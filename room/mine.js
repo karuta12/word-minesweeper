@@ -897,7 +897,7 @@ function mineJudgeAnswer(answer, playerNum) {
     });
     mineTriggerVictory(playerNum, mineCurrent.word);
   } else {
-    mineAddLog(`❌ ${name}の回答「${answer}」は不正解。回答権を失います。`);
+    mineAddLog(`❌ ${name}の回答「${answer}」は不正解。回答権を失います（ターンは継続）。`);
     mineCanAnswer[playerNum] = false;
     lobbyBroadcast({
       type: "MINE_GUESS_RESULT",
@@ -905,7 +905,10 @@ function mineJudgeAnswer(answer, playerNum) {
       playerNum: playerNum,
       answer: answer,
     });
-    mineEndTurn();
+    // 不正解時はターンを交代せず、回答権のみ失う
+    minePhase = "choose";
+    mineUpdateUI();
+    mineSaveState();
   }
 }
 
@@ -1085,8 +1088,9 @@ function mineGuestReceive(data) {
     } else {
       mineCanAnswer[data.playerNum] = false;
       mineAddLog(
-        `❌ ${name}の回答「${data.answer}」は不正解。回答権を失います。`,
+        `❌ ${name}の回答「${data.answer}」は不正解。回答権を失います（ターンは継続）。`,
       );
+      // 不正解時はターンを交代せず、回答権のみ失う
       minePhase = "choose";
       mineUpdateUI();
     }
