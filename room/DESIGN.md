@@ -1,6 +1,6 @@
 # ゲームロビー 設計ドキュメント
 
-> 最終更新: 2026-11-05
+> 最終更新: 2026-11-07
 
 ---
 
@@ -236,8 +236,9 @@ DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり
 五十音表をボードにしたマインスイーパー型ワード推理ゲーム（2人対戦）。  
 爆弾マス（答えの文字を含むマス）を手がかりに、お題のワードを当てる。
 
-2つのボードレイアウトに対応：
+3つのボードレイアウトに対応：
 - **固定レイアウト** (`mine_layout: "fixed"`): 五十音表の標準10×5配置
+- **コンパクトレイアウト** (`mine_layout: "compact"`): 8列×6行配置。やゆよ・わをんー を6行目にまとめ、空きマスを削除したコンパクト版
 - **ランダムレイアウト** (`mine_layout: "random"`): 7×7グリッドに五十音を無作為配置
 
 ### ゲームフロー
@@ -269,7 +270,7 @@ DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり
 
 ### セルデータ構造
 
-**固定レイアウト** (`mine_layout: "fixed"`)：
+**固定レイアウト** (`mine_layout: "fixed"`) および **コンパクトレイアウト** (`mine_layout: "compact"`)：
 ```js
 cells[char] = {
   char: "あ",            // 五十音の文字
@@ -278,6 +279,8 @@ cells[char] = {
   neighborBombs: number  // 隣接8マスの爆弾総数
 }
 ```
+
+固定/コンパクトレイアウトでは `mineGetActiveGrid()` が `MINE_KANA_GRID`（10×5）または `MINE_KANA_GRID_COMPACT`（8×6）を返す。
 
 **ランダムレイアウト** (`mine_layout: "random"`)：
 ```js

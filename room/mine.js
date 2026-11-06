@@ -15,6 +15,24 @@ const MINE_KANA_GRID = [
   ["ー", "れ", "", "め", "へ", "ね", "て", "せ", "け", "え"],
   ["", "ろ", "よ", "も", "ほ", "の", "と", "そ", "こ", "お"],
 ];
+
+// コンパクト配置（8列×6行）：やゆよ・わをんー を6行目にまとめた五十音表
+const MINE_KANA_GRID_COMPACT = [
+  ["ら", "ま", "は", "な", "た", "さ", "か", "あ"],
+  ["り", "み", "ひ", "に", "ち", "し", "き", "い"],
+  ["る", "む", "ふ", "ぬ", "つ", "す", "く", "う"],
+  ["れ", "め", "へ", "ね", "て", "せ", "け", "え"],
+  ["ろ", "も", "ほ", "の", "と", "そ", "こ", "お"],
+  ["や", "ゆ", "よ", "わ", "を", "ん", "ー", ""],
+];
+
+// 現在の配置モードに応じてアクティブなグリッドを返す
+function mineGetActiveGrid() {
+  if (mineBoardLayout === "random" && mineRandomGrid) return mineRandomGrid;
+  if (mineBoardLayout === "compact") return MINE_KANA_GRID_COMPACT;
+  return MINE_KANA_GRID;
+}
+
 const MINE_DAKUTEN_MAP = {
   が: "か",
   ぎ: "き",
@@ -239,7 +257,7 @@ function minePickQuestion() {
 }
 
 function mineExtractBombCounts(word) {
-  const valid = MINE_KANA_GRID.flat().filter((c) => c !== "");
+  const valid = mineGetActiveGrid().flat().filter((c) => c !== "");
   return [...word].reduce((acc, ch) => {
     const c = MINE_DAKUTEN_MAP[ch] || ch;
     if (valid.includes(c)) acc[c] = (acc[c] || 0) + 1;
@@ -248,8 +266,9 @@ function mineExtractBombCounts(word) {
 }
 
 function mineBuildCellsData(word) {
+  const grid = mineGetActiveGrid();
   const cells = {};
-  MINE_KANA_GRID.forEach((row) =>
+  grid.forEach((row) =>
     row.forEach((char) => {
       if (char)
         cells[char] = { char, isOpen: false, bombs: 0, neighborBombs: 0 };
@@ -259,9 +278,9 @@ function mineBuildCellsData(word) {
     if (cells[ch]) cells[ch].bombs = n;
   });
   // 隣接爆弾数計算
-  for (let r = 0; r < MINE_KANA_GRID.length; r++) {
-    for (let c = 0; c < MINE_KANA_GRID[r].length; c++) {
-      const ch = MINE_KANA_GRID[r][c];
+  for (let r = 0; r < grid.length; r++) {
+    for (let c = 0; c < grid[r].length; c++) {
+      const ch = grid[r][c];
       if (!ch) continue;
       let total = 0;
       for (let dr = -1; dr <= 1; dr++)
@@ -271,11 +290,11 @@ function mineBuildCellsData(word) {
             nc = c + dc;
           if (
             nr >= 0 &&
-            nr < MINE_KANA_GRID.length &&
+            nr < grid.length &&
             nc >= 0 &&
-            nc < MINE_KANA_GRID[nr].length
+            nc < grid[nr].length
           ) {
-            const n2 = MINE_KANA_GRID[nr][nc];
+            const n2 = grid[nr][nc];
             if (n2 && cells[n2]) total += cells[n2].bombs;
           }
         }
@@ -582,9 +601,12 @@ function mineRenderBoard() {
       }
     }
   } else {
-    // 通常グリッド表示（10×5）
-    boardEl.className = "grid grid-cols-10 gap-1 sm:gap-1.5 w-full select-none";
-    MINE_KANA_GRID.forEach((row) =>
+    // 固定グリッド表示（fixed: 10×5 / compact: 8×6）
+    const grid = mineGetActiveGrid();
+    const cols = grid[0].length;
+    boardEl.className = "grid gap-1 sm:gap-1.5 w-full select-none";
+    boardEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.forEach((row) =>
       row.forEach((char) => {
         const div = document.createElement("div");
         if (!char) {
@@ -844,20 +866,21 @@ function mineRevealCellRecursive(startChar) {
 }
 
 function mineRevealNeighbors(char) {
+  const grid = mineGetActiveGrid();
   let rPos = -1, cPos = -1;
-  for (let r = 0; r < MINE_KANA_GRID.length && rPos === -1; r++)
-    for (let c = 0; c < MINE_KANA_GRID[r].length; c++)
-      if (MINE_KANA_GRID[r][c] === char) { rPos = r; cPos = c; break; }
+  for (let r = 0; r < grid.length && rPos === -1; r++)
+    for (let c = 0; c < grid[r].length; c++)
+      if (grid[r][c] === char) { rPos = r; cPos = c; break; }
   if (rPos === -1) return;
   for (let dr = -1; dr <= 1; dr++)
     for (let dc = -1; dc <= 1; dc++) {
       if (!dr && !dc) continue;
       const nr = rPos + dr, nc = cPos + dc;
       if (
-        nr >= 0 && nr < MINE_KANA_GRID.length &&
-        nc >= 0 && nc < MINE_KANA_GRID[nr].length
+        nr >= 0 && nr < grid.length &&
+        nc >= 0 && nc < grid[nr].length
       ) {
-        const next = MINE_KANA_GRID[nr][nc];
+        const next = grid[nr][nc];
         if (next && mineCellsData[next] && !mineCellsData[next].isOpen && mineCellsData[next].bombs === 0)
           mineRevealCellRecursive(next);
       }
