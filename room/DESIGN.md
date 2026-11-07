@@ -1,6 +1,6 @@
 # ゲームロビー 設計ドキュメント
 
-> 最終更新: 2026-11-07
+> 最終更新: 2026-11-07（ターン時間オプション追加）
 
 ---
 
@@ -71,6 +71,7 @@ lobby-screen（ロビー）
 | `lobbyIsHost` | boolean | ホストかどうか |
 | `lobbyRoomName` | string | 合言葉 |
 | `lobbyLang` | `"ja"` \| `"en"` | 文字ポーカーの言語設定 |
+| `lobbyGameOptions` | object | ゲームオプション（ホスト用）: `{ mine_prereveal, mine_layout, mine_turn_time }` |
 
 ### 主要関数
 
@@ -254,8 +255,23 @@ DOM の `.bingo-cell` には `data-player-index` と `data-char` 属性があり
    - 「ワードを答える」ボタン: 正解すれば勝利、不正解で回答権喪失（ターンは相手に移らない）
 4. 位置ヒント（各プレイヤー1回のみ）
    - 開いている爆弾マスの中から1つを選び、その文字がお題の何文字目かを表示
-5. タイマー（180秒）切れで強制的にランダムマスを開放
+5. タイマー（デフォルト: 120秒 / 2分）切れで強制的にランダムマスを開放
 ```
+
+### タイマー管理
+
+- **初期値**: 120秒（2分）
+- **ロビーでの設定**:
+  - ホスト画面の「⚙️ ゲームオプション」セクションに「ターン時間（秒）」入力欄がある
+  - 30～600秒の範囲で変更可能
+  - デフォルト: 120秒
+  - ゲーム開始時にホストから全ゲストに `turnTime` として送信される
+- **同期方法**:
+  - ホスト側が毎秒ゲストに時間を同期（`MINE_TIMER` メッセージ）
+  - ゲスト側はクライアント側で毎秒カウント＋ホストから同期で時刻ズレを補正（1秒以上のズレのみ補正）
+- **タイムアウト時**:
+  - 1秒ごとの強制展開: ホストが `mineHandleTimeout()` で未開放マスをランダムに1つ開く
+  - 全マス開放済みの場合: ターン交代
 
 ### フェーズ管理
 
@@ -333,7 +349,7 @@ mineRevealNeighbors(char)
 
 | type | 方向 | 内容 |
 |------|------|------|
-| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData, firstTurn, preRevealMode, boardLayout, randomGrid }` |
+| `GAME_SELECTED` | ホスト→ゲスト | `{ playerNum, names, genre, wordLength, cellsData, firstTurn, preRevealMode, boardLayout, randomGrid, turnTime }` |
 | `MINE_PRESET_OPEN` | ホスト→ゲスト | `{ openedCells: [key1, key2, ...] }` ゲーム開始時の自動開放セル情報 |
 | `MINE_OPEN` | ゲスト→ホスト | `{ char }` または `{ key }` 開けたいマス |
 | `MINE_CELL_OPENED` | ホスト→全員 | `{ cellsData, skipped }` 更新後の盤面 |

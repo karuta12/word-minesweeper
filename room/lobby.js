@@ -13,7 +13,8 @@ let lobbyLang = "ja"; // ポーカー用言語
 // ゲームオプション
 let lobbyGameOptions = {
   mine_prereveal: false, // マインスイーパー：先攻前に1個開く
-  mine_layout: "fixed", // マインスイーパー配置："fixed" or "random"
+  mine_layout: "fixed", // マインスイーパー配置："fixed" or "random" or "compact"
+  mine_turn_time: 120, // マインスイーパー：ターン時間（秒）
 };
 
 // ── 言語選択（ポーカー用、ホストのみ） ──
@@ -40,6 +41,14 @@ function lobbyUpdateMineOptions() {
   if (layoutRadio) {
     lobbyGameOptions.mine_layout = layoutRadio.value;
     mineBoardLayout = layoutRadio.value;
+  }
+
+  const turnTimeInput = document.getElementById("lobby-option-mine-turn-time");
+  if (turnTimeInput) {
+    const val = parseInt(turnTimeInput.value, 10);
+    if (!isNaN(val) && val >= 30 && val <= 600) {
+      lobbyGameOptions.mine_turn_time = val;
+    }
   }
 }
 

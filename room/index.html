@@ -508,6 +508,19 @@
             />
             <span>マインスイーパー：7×7ランダム配置（2マス開放）</span>
           </label>
+          <label style="display: flex; align-items: center; margin-top: 8px; cursor: pointer; gap: 8px">
+            <span style="min-width: 140px">ターン時間（秒）:</span>
+            <input
+              type="number"
+              id="lobby-option-mine-turn-time"
+              min="30"
+              max="600"
+              value="120"
+              onchange="lobbyUpdateMineOptions()"
+              style="width: 60px; padding: 4px; border: 1px solid #999; border-radius: 4px; cursor: pointer"
+            />
+            <span style="font-size: 12px; color: #666">(30～600秒、デフォルト: 120秒)</span>
+          </label>
         </div>
 
         <div
@@ -1352,11 +1365,11 @@
         document.getElementById(id).classList.add("active");
       }
     </script>
-    <script src="lobby.js?v=202611070020"></script>
-    <script src="poker.js?v=202611070020"></script>
-    <script src="bingo.js?v=202611070020"></script>
-    <script src="mine.js?v=202611070020"></script>
-    <script src="mojipittan.js?v=202611070020"></script>
+    <script src="lobby.js?v=202611071016"></script>
+    <script src="poker.js?v=202611071016"></script>
+    <script src="bingo.js?v=202611071016"></script>
+    <script src="mine.js?v=202611071016"></script>
+    <script src="mojipittan.js?v=202611071016"></script>
     <script>
       // マインスイーパーの問題DBをページロード時に初期化
       mineInit();

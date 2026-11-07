@@ -86,7 +86,7 @@ let mineGenre = ""; // ゲスト用：ジャンル
 let minePreRevealMode = false; // ゲーム開始前に1個空ける機能を有効にするか
 let mineBoardLayout = "fixed"; // ボード配置："fixed" (10×5) or "random" (7×7)
 
-const MINE_TURN_TIME = 180;
+let MINE_TURN_TIME = 120; // ターン時間（秒）、初期値2分（120秒）
 let mineTimeLeft = MINE_TURN_TIME;
 let mineTimerInterval = null;
 
@@ -406,6 +406,10 @@ function mineHostStart(names, question, cellsData, firstTurn = 1) {
   if (typeof lobbyGameOptions !== "undefined") {
     minePreRevealMode = lobbyGameOptions.mine_prereveal;
     mineBoardLayout = lobbyGameOptions.mine_layout;
+    // ターン時間をロビーオプションから反映（秒単位）
+    if (lobbyGameOptions.mine_turn_time !== undefined) {
+      MINE_TURN_TIME = parseInt(lobbyGameOptions.mine_turn_time, 10) || 120;
+    }
   }
 
   // プリセット開放：オプションで1個ランダムに空ける
@@ -471,6 +475,10 @@ function mineGuestStart(data) {
   mineBoardLayout = data.boardLayout || "fixed";
   mineRandomGrid = data.randomGrid || null;
   mineRandomCharToPos = null; // 古いグリッド情報をクリア
+  // ターン時間をホストから受信して反映
+  if (data.turnTime !== undefined) {
+    MINE_TURN_TIME = parseInt(data.turnTime, 10) || 120;
+  }
   if (data.timeLeft !== undefined) {
     mineTimeLeft = data.timeLeft;
   }
@@ -1166,6 +1174,7 @@ function mineInitGame() {
       preRevealMode: lobbyGameOptions.mine_prereveal,
       boardLayout: lobbyGameOptions.mine_layout,
       randomGrid: mineRandomGrid,
+      turnTime: MINE_TURN_TIME,
     });
   });
   mineHostStart(names, q, cells, firstTurn);
