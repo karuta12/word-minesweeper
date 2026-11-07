@@ -1,6 +1,6 @@
 # ゲームロビー 設計ドキュメント
 
-> 最終更新: 2026-11-07（ターン時間オプション追加）
+> 最終更新: 2026-11-07（プレイヤー名のローカル保存機能追加）
 
 ---
 
@@ -67,11 +67,12 @@ lobby-screen（ロビー）
 | `lobbyPeer` | Peer | 自分の PeerJS インスタンス |
 | `lobbyConns` | `{ peerId: { conn, name } }` | ホスト用：接続中のゲスト一覧 |
 | `lobbyHostConn` | DataConnection | ゲスト用：ホストへの接続 |
-| `lobbyMyName` | string | 自分の名前（部屋作成・参加時に prompt で入力） |
+| `lobbyMyName` | string | 自分の名前（部屋作成・参加時に prompt で入力。localStorage に保存・復元される） |
 | `lobbyIsHost` | boolean | ホストかどうか |
 | `lobbyRoomName` | string | 合言葉 |
 | `lobbyLang` | `"ja"` \| `"en"` | 文字ポーカーの言語設定 |
 | `lobbyGameOptions` | object | ゲームオプション（ホスト用）: `{ mine_prereveal, mine_layout, mine_turn_time }` |
+| `LOBBY_NAME_STORAGE_KEY` | string | localStorage のキー（`"lobby_player_name"`）。プレイヤー名の保存・復元に使用 |
 
 ### 主要関数
 
@@ -84,6 +85,12 @@ lobby-screen（ロビー）
 | `lobbyHostReceive(peerId, data)` | ホスト側のメッセージルーター |
 | `lobbyGuestReceive(data)` | ゲスト側のメッセージルーター |
 | `lobbyCleanupPeer()` | 既存 Peer を破棄してリセット |
+
+### プレイヤー名の保存・復元
+
+- 部屋作成・参加時の `prompt()` で入力した名前は `localStorage` に保存される（キー: `lobby_player_name`）。
+- 次回以降は保存された名前が `prompt()` のデフォルト値として表示されるため、毎回入力し直す必要がない。
+- ホスト・ゲスト双方で動作する。
 
 ### 接続フロー
 

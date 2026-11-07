@@ -10,6 +10,9 @@ let lobbyIsHost = false;
 let lobbyRoomName = "";
 let lobbyLang = "ja"; // ポーカー用言語
 
+// ── プレイヤー名のローカル保存キー ──
+const LOBBY_NAME_STORAGE_KEY = "lobby_player_name";
+
 // ゲームオプション
 let lobbyGameOptions = {
   mine_prereveal: false, // マインスイーパー：先攻前に1個開く
@@ -89,7 +92,9 @@ function lobbyCleanupPeer() {
 function lobbyCreateRoom() {
   lobbyRoomName = document.getElementById("lobby-room-input").value.trim();
   if (!lobbyRoomName) return alert("合言葉を入力してください");
-  lobbyMyName = prompt("名前を入力してください", "ホスト") || "ホスト";
+  const savedName = localStorage.getItem(LOBBY_NAME_STORAGE_KEY);
+  lobbyMyName = prompt("名前を入力してください", savedName || "ホスト") || "ホスト";
+  localStorage.setItem(LOBBY_NAME_STORAGE_KEY, lobbyMyName);
   lobbyIsHost = true;
 
   // 既存のPeerがあれば破棄してから新規作成
@@ -158,7 +163,9 @@ function lobbyCreateRoom() {
 function lobbyJoinRoom() {
   lobbyRoomName = document.getElementById("lobby-room-input").value.trim();
   if (!lobbyRoomName) return alert("合言葉を入力してください");
-  lobbyMyName = prompt("名前を入力してください", "プレイヤー") || "プレイヤー";
+  const savedName = localStorage.getItem(LOBBY_NAME_STORAGE_KEY);
+  lobbyMyName = prompt("名前を入力してください", savedName || "プレイヤー") || "プレイヤー";
+  localStorage.setItem(LOBBY_NAME_STORAGE_KEY, lobbyMyName);
   lobbyIsHost = false;
 
   lobbyCleanupPeer();
